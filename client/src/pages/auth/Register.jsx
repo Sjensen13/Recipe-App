@@ -52,7 +52,7 @@ const Register = () => {
       };
 
       await register(formData.email, formData.password, userData);
-      navigate('/'); // Redirect to home page after successful registration
+      navigate('/home'); // Redirect to home page after successful registration
     } catch (error) {
       setError(error.message || 'Registration failed. Please try again.');
     } finally {
@@ -100,7 +100,7 @@ const Register = () => {
 
           <div className="form-group">
             <label htmlFor="name" className="form-label">
-              Full Name
+              Name
             </label>
             <input
               id="name"
@@ -108,7 +108,7 @@ const Register = () => {
               type="text"
               required
               className="form-input"
-              placeholder="Enter your full name"
+              placeholder="Enter your name"
               value={formData.name}
               onChange={handleChange}
               disabled={isLoading}
