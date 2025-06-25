@@ -1,0 +1,28 @@
+{
+  "users": [
+    {
+      "username": "newuser",
+      "email": "new@example.com",
+      "password": "$2a$12$Uu76dN0lBvyyhm0FEozpDuvcW/ShR9WyQbX4N3zI.0vpXJ6D5q3SG",
+      "name": "New User",
+      "id": 1,
+      "created_at": "2025-06-25T02:50:47.181Z",
+      "updated_at": "2025-06-25T02:50:47.181Z"
+    },
+    {
+      "username": "Momoinu",
+      "email": "mochansan22@gmail.com",
+      "password": "$2a$12$jT22cOGt2JLNSzn4m011gewFTp9UfihZDuMMsT2f2OSptel/hmICW",
+      "name": "Shuma",
+      "id": 2,
+      "created_at": "2025-06-25T02:51:12.830Z",
+      "updated_at": "2025-06-25T02:51:12.830Z"
+    }
+  ],
+  "posts": [],
+  "comments": [],
+  "likes": [],
+  "messages": [],
+  "recipes": [],
+  "hashtags": []
+}
