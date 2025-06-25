@@ -15,31 +15,48 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [supabaseError, setSupabaseError] = useState(false);
 
   // Check if user is logged in on app start
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setLoading(false);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+        setLoading(false);
+      } catch (error) {
+        console.error('Supabase session error:', error);
+        setSupabaseError(true);
+        setLoading(false);
+      }
     };
 
     getInitialSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('Auth state changed:', event, session?.user?.email);
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
+      );
 
-    return () => subscription.unsubscribe();
+      return () => subscription.unsubscribe();
+    } catch (error) {
+      console.error('Supabase auth listener error:', error);
+      setSupabaseError(true);
+      setLoading(false);
+    }
   }, []);
 
   const login = async (usernameOrEmail, password) => {
+    if (supabaseError) {
+      throw new Error('Authentication service is not configured. Please check your environment variables.');
+    }
+
     setLoading(true);
     try {
       // First, try to authenticate with the provided username/email
@@ -93,6 +110,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password, userData = {}) => {
+    if (supabaseError) {
+      throw new Error('Authentication service is not configured. Please check your environment variables.');
+    }
+
     setLoading(true);
     try {
       // First, create the user in Supabase auth
@@ -135,6 +156,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    if (supabaseError) {
+      setUser(null);
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -148,6 +174,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const resetPassword = async (email) => {
+    if (supabaseError) {
+      throw new Error('Authentication service is not configured. Please check your environment variables.');
+    }
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`
@@ -163,6 +193,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updatePassword = async (newPassword) => {
+    if (supabaseError) {
+      throw new Error('Authentication service is not configured. Please check your environment variables.');
+    }
+
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword
@@ -186,6 +220,7 @@ export const AuthProvider = ({ children }) => {
     resetPassword,
     updatePassword,
     isAuthenticated: !!user,
+    supabaseError,
   };
 
   return (

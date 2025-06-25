@@ -29,7 +29,7 @@ const Login = () => {
 
     try {
       await login(formData.username, formData.password);
-      navigate('/'); // Redirect to home page after successful login
+      navigate('/home'); // Redirect to home page after successful login
     } catch (error) {
       setError(error.message || 'Login failed. Please try again.');
     } finally {
