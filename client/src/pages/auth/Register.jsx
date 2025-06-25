@@ -1,8 +1,44 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/auth/AuthContext';
 import '../../assets/styles/auth.css';
 
 const Register = () => {
+  const [formData, setFormData] = useState({
+    username: '',
+    name: '',
+    email: '',
+    password: ''
+  });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setError(''); // Clear error when user types
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      await register(formData.username, formData.email, formData.password, formData.name);
+      navigate('/'); // Redirect to home page after successful registration
+    } catch (error) {
+      setError(error.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -10,8 +46,21 @@ const Register = () => {
           <h2>Join Recipe Social</h2>
         </div>
         
-        <form className="auth-form">
-        <div className="form-group">
+        <form className="auth-form" onSubmit={handleSubmit}>
+          {error && (
+            <div className="error-message" style={{ 
+              color: '#ef4444', 
+              backgroundColor: '#fef2f2', 
+              padding: '0.75rem', 
+              borderRadius: '8px', 
+              marginBottom: '1rem',
+              border: '1px solid #fecaca'
+            }}>
+              {error}
+            </div>
+          )}
+          
+          <div className="form-group">
             <label htmlFor="username" className="form-label">
               Username
             </label>
@@ -22,6 +71,9 @@ const Register = () => {
               required
               className="form-input"
               placeholder="Enter your username"
+              value={formData.username}
+              onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
 
@@ -36,6 +88,9 @@ const Register = () => {
               required
               className="form-input"
               placeholder="Enter your name"
+              value={formData.name}
+              onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
           
@@ -50,6 +105,9 @@ const Register = () => {
               required
               className="form-input"
               placeholder="Enter your email"
+              value={formData.email}
+              onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
           
@@ -64,11 +122,19 @@ const Register = () => {
               required
               className="form-input"
               placeholder="Enter your password"
+              value={formData.password}
+              onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
           
-          <button type="submit" className="auth-button">
-            Create Account
+          <button 
+            type="submit" 
+            className="auth-button"
+            disabled={isLoading}
+            style={{ opacity: isLoading ? 0.7 : 1 }}
+          >
+            {isLoading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
         

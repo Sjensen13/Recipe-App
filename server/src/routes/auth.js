@@ -1,24 +1,15 @@
 const express = require('express');
 const router = express.Router();
 
-// TODO: Import auth controllers
-// const { register, login, logout, getMe } = require('../controllers/auth');
+const { register, login, logout, getMe } = require('../controllers/auth');
+const { authenticateToken } = require('../middleware/auth');
 
-// Placeholder routes
-router.post('/register', (req, res) => {
-  res.json({ message: 'Register endpoint - to be implemented' });
-});
+// Public routes
+router.post('/register', register);
+router.post('/login', login);
 
-router.post('/login', (req, res) => {
-  res.json({ message: 'Login endpoint - to be implemented' });
-});
-
-router.post('/logout', (req, res) => {
-  res.json({ message: 'Logout endpoint - to be implemented' });
-});
-
-router.get('/me', (req, res) => {
-  res.json({ message: 'Get current user endpoint - to be implemented' });
-});
+// Protected routes
+router.post('/logout', authenticateToken, logout);
+router.get('/me', authenticateToken, getMe);
 
 module.exports = router; 
