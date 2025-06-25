@@ -9,6 +9,7 @@ import { NotificationProvider } from './context/notification/NotificationContext
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
 
 // Main Pages - Commented out until files are created
 // import Feed from './pages/feed/Feed';
@@ -28,6 +29,7 @@ function App() {
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/" element={<Login />} />
             
             {/* Protected Routes - Commented out until files are created */}

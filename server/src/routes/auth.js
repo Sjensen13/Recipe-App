@@ -1,15 +1,20 @@
 const express = require('express');
 const router = express.Router();
 
-const { register, login, logout, getMe } = require('../controllers/auth');
+const { getMe, updateProfile, createProfile, login, getEmailByUsername } = require('../controllers/auth');
 const { authenticateToken } = require('../middleware/auth');
 
-// Public routes
-router.post('/register', register);
+// Route to handle username/email login
 router.post('/login', login);
 
-// Protected routes
-router.post('/logout', authenticateToken, logout);
+// Route to get email by username (for password reset)
+router.post('/get-email-by-username', getEmailByUsername);
+
+// Route to create user profile (called during registration)
+router.post('/create-profile', createProfile);
+
+// Protected routes - user must be authenticated via Supabase
 router.get('/me', authenticateToken, getMe);
+router.put('/profile', authenticateToken, updateProfile);
 
 module.exports = router; 

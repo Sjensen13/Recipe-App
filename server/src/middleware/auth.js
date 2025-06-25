@@ -1,5 +1,4 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { supabase } = require('../services/supabase/client');
 
 const authenticateToken = async (req, res, next) => {
   try {
@@ -13,12 +12,10 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify token with Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
     
-    // Get user data
-    const user = await User.findById(decoded.userId);
-    if (!user) {
+    if (error || !user) {
       return res.status(401).json({
         success: false,
         message: 'Invalid token'
@@ -31,23 +28,9 @@ const authenticateToken = async (req, res, next) => {
   } catch (error) {
     console.error('Authentication error:', error);
     
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token'
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token expired'
-      });
-    }
-
-    res.status(500).json({
+    res.status(401).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Invalid token'
     });
   }
 };
@@ -58,9 +41,8 @@ const optionalAuth = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.userId);
-      if (user) {
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (user && !error) {
         req.user = user;
       }
     }

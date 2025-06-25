@@ -60,7 +60,7 @@ const Login = () => {
           
           <div className="form-group">
             <label htmlFor="username" className="form-label">
-              Username
+              Username or Email
             </label>
             <input
               id="username"
@@ -68,7 +68,7 @@ const Login = () => {
               type="text"
               required
               className="form-input"
-              placeholder="Enter your username"
+              placeholder="Enter your username or email"
               value={formData.username}
               onChange={handleChange}
               disabled={isLoading}
@@ -107,6 +107,11 @@ const Login = () => {
             Don't have an account?{' '}
             <Link to="/register" className="auth-link">
               Sign up
+            </Link>
+          </p>
+          <p>
+            <Link to="/forgot-password" className="auth-link">
+              Forgot your password?
             </Link>
           </p>
         </div>

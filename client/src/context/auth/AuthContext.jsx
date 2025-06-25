@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { supabase } from '../../services/supabase/client';
+import apiClient from '../../services/api/client';
 
 const AuthContext = createContext();
 
@@ -15,83 +16,119 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Set up axios defaults
-  axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
-
-  // Add token to requests if it exists
-  const setAuthToken = (token) => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      localStorage.setItem('token', token);
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-      localStorage.removeItem('token');
-    }
-  };
-
   // Check if user is logged in on app start
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setAuthToken(token);
-      checkAuthStatus();
-    } else {
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
       setLoading(false);
-    }
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const checkAuthStatus = async () => {
-    try {
-      const response = await axios.get('/auth/me');
-      setUser(response.data.data.user);
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setAuthToken(null);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const login = async (username, password) => {
+  const login = async (usernameOrEmail, password) => {
     setLoading(true);
     try {
-      const response = await axios.post('/auth/login', {
-        username,
+      // First, try to authenticate with the provided username/email
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: usernameOrEmail, // Try as email first
         password
       });
 
-      const { user, token } = response.data.data;
-      setAuthToken(token);
-      setUser(user);
-      return user;
+      if (error) {
+        // If email login fails, try username login through our API
+        if (error.message.includes('Invalid login credentials')) {
+          try {
+            // Call our custom login endpoint that handles username lookup
+            const response = await apiClient.post('/auth/login', {
+              username: usernameOrEmail,
+              password: password
+            });
+
+            if (response.data.success) {
+              // Get the user's email from the response and login with Supabase
+              const { data: supabaseData, error: supabaseError } = await supabase.auth.signInWithPassword({
+                email: response.data.email,
+                password: password
+              });
+
+              if (supabaseError) {
+                throw new Error(supabaseError.message);
+              }
+
+              setUser(supabaseData.user);
+              return supabaseData.user;
+            } else {
+              throw new Error(response.data.message || 'Invalid credentials');
+            }
+          } catch (apiError) {
+            throw new Error('Invalid username or password');
+          }
+        } else {
+          throw new Error(error.message);
+        }
+      }
+
+      setUser(data.user);
+      return data.user;
     } catch (error) {
       console.error('Login error:', error);
-      const message = error.response?.data?.message || 'Login failed';
-      throw new Error(message);
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const register = async (username, email, password, name) => {
+  const register = async (email, password, userData = {}) => {
     setLoading(true);
     try {
-      const response = await axios.post('/auth/register', {
-        username,
+      // First, create the user in Supabase auth
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        name
+        options: {
+          data: userData // This will be stored in user_metadata
+        }
       });
 
-      const { user, token } = response.data.data;
-      setAuthToken(token);
-      setUser(user);
-      return user;
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // If registration is successful, also create user record in custom users table
+      if (data.user) {
+        try {
+          // Create user record in custom users table
+          await apiClient.post('/auth/create-profile', {
+            username: userData.username,
+            name: userData.name,
+            email: email
+          });
+        } catch (profileError) {
+          console.warn('Failed to create user profile:', profileError);
+          // Don't throw error here as the user is already created in Supabase auth
+          // The database trigger should handle this automatically, but this is a backup
+        }
+      }
+
+      setUser(data.user);
+      return data.user;
     } catch (error) {
       console.error('Registration error:', error);
-      const message = error.response?.data?.message || 'Registration failed';
-      throw new Error(message);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -99,12 +136,44 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post('/auth/logout');
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      setAuthToken(null);
       setUser(null);
+    }
+  };
+
+  const resetPassword = async (email) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.error('Password reset error:', error);
+      throw error;
+    }
+  };
+
+  const updatePassword = async (newPassword) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.error('Password update error:', error);
+      throw error;
     }
   };
 
@@ -114,6 +183,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    resetPassword,
+    updatePassword,
     isAuthenticated: !!user,
   };
 
