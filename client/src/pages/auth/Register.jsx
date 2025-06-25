@@ -8,7 +8,8 @@ const Register = () => {
     username: '',
     name: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,8 +30,28 @@ const Register = () => {
     setIsLoading(true);
     setError('');
 
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await register(formData.username, formData.email, formData.password, formData.name);
+      // Store additional user data in metadata
+      const userData = {
+        username: formData.username,
+        name: formData.name
+      };
+
+      await register(formData.email, formData.password, userData);
       navigate('/'); // Redirect to home page after successful registration
     } catch (error) {
       setError(error.message || 'Registration failed. Please try again.');
@@ -79,7 +100,7 @@ const Register = () => {
 
           <div className="form-group">
             <label htmlFor="name" className="form-label">
-              Name
+              Full Name
             </label>
             <input
               id="name"
@@ -87,7 +108,7 @@ const Register = () => {
               type="text"
               required
               className="form-input"
-              placeholder="Enter your name"
+              placeholder="Enter your full name"
               value={formData.name}
               onChange={handleChange}
               disabled={isLoading}
@@ -123,6 +144,23 @@ const Register = () => {
               className="form-input"
               placeholder="Enter your password"
               value={formData.password}
+              onChange={handleChange}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="confirmPassword" className="form-label">
+              Confirm Password
+            </label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              required
+              className="form-input"
+              placeholder="Confirm your password"
+              value={formData.confirmPassword}
               onChange={handleChange}
               disabled={isLoading}
             />
