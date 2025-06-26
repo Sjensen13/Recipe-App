@@ -1,26 +1,186 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/auth/AuthContext';
+import { userService } from '../../services/api/user';
+import ProfileHeader from '../../components/profile/ProfileHeader';
+import ProfileTabs from '../../components/profile/ProfileTabs';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import ErrorState from '../../components/ui/ErrorState';
+import Toast from '../../components/ui/Toast';
 
 const Profile = () => {
   const { userId } = useParams();
+  const { user: currentUser, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    username: '',
+    name: '',
+    bio: '',
+    avatar_url: ''
+  });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [activeTab, setActiveTab] = useState('posts');
+  const [toast, setToast] = useState({ isVisible: false, message: '', type: 'info' });
+
+  // Check if viewing own profile
+  const isOwnProfile = !userId || userId === 'me' || (currentUser && currentUser.id === userId);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [userId]);
+
+  const showToast = (message, type = 'info') => {
+    setToast({ isVisible: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast(prev => ({ ...prev, isVisible: false }));
+  };
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await userService.getProfile();
+      setProfile(response.data.user);
+      setEditForm({
+        username: response.data.user.username || response.data.user.user_metadata?.username || '',
+        name: response.data.user.name || response.data.user.user_metadata?.name || '',
+        bio: response.data.user.bio || response.data.user.user_metadata?.bio || '',
+        avatar_url: response.data.user.avatar_url || response.data.user.user_metadata?.avatar_url || ''
+      });
+    } catch (err) {
+      setError('Failed to load profile');
+      console.error('Profile fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await userService.updateProfile(editForm);
+      setProfile(prev => ({
+        ...prev,
+        ...editForm,
+        user_metadata: {
+          ...prev.user_metadata,
+          ...editForm
+        }
+      }));
+      setIsEditing(false);
+      showToast('Profile updated successfully!', 'success');
+    } catch (err) {
+      showToast('Failed to update profile', 'error');
+      console.error('Profile update error:', err);
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploadingAvatar(true);
+      // For now, we'll use a placeholder URL
+      // In a real app, you'd upload to cloud storage
+      const avatarUrl = URL.createObjectURL(file);
+      setEditForm(prev => ({ ...prev, avatar_url: avatarUrl }));
+      showToast('Avatar updated!', 'success');
+    } catch (err) {
+      showToast('Failed to upload avatar', 'error');
+      console.error('Avatar upload error:', err);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleFormChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message={error}
+        onRetry={fetchProfile}
+        onNavigate={navigate}
+      />
+    );
+  }
+
+  if (!profile) {
+    return (
+      <ErrorState
+        message="Profile not found"
+        onNavigate={navigate}
+        navigateText="Go Home"
+        navigatePath="/"
+      />
+    );
+  }
+
+  const userData = {
+    username: profile.username || profile.user_metadata?.username || 'No username',
+    name: profile.name || profile.user_metadata?.name || 'No name',
+    bio: profile.bio || profile.user_metadata?.bio || 'No bio yet',
+    avatar_url: profile.avatar_url || profile.user_metadata?.avatar_url || '',
+    email: profile.email,
+    created_at: profile.created_at
+  };
+
+  // Mock stats - in a real app, these would come from the API
+  const userStats = {
+    posts: 0,
+    followers: 0,
+    following: 0
+  };
 
   return (
-    <div style={{ maxWidth: '1024px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', marginBottom: '1.5rem' }}>
-        Profile
-      </h1>
-      
-      {/* Profile content will go here */}
-      <div style={{ 
-        backgroundColor: 'white', 
-        borderRadius: '8px', 
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', 
-        padding: '1.5rem' 
-      }}>
-        <p style={{ color: '#6b7280' }}>
-          Profile page for user: {userId}
-        </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <ProfileHeader
+          userData={userData}
+          isOwnProfile={isOwnProfile}
+          isEditing={isEditing}
+          editForm={editForm}
+          uploadingAvatar={uploadingAvatar}
+          stats={userStats}
+          onEditClick={() => setIsEditing(true)}
+          onEditSubmit={handleEditSubmit}
+          onEditCancel={() => setIsEditing(false)}
+          onFormChange={handleFormChange}
+          onAvatarUpload={handleAvatarUpload}
+        />
+
+        <ProfileTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isOwnProfile={isOwnProfile}
+          onNavigate={navigate}
+        />
       </div>
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 };
