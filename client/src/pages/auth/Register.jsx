@@ -52,7 +52,7 @@ const Register = () => {
       };
 
       await register(formData.email, formData.password, userData);
-      navigate('/home'); // Redirect to home page after successful registration
+      navigate('/app/home'); // Redirect to home page after successful registration
     } catch (error) {
       setError(error.message || 'Registration failed. Please try again.');
     } finally {

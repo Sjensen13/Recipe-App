@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import App from './App';
@@ -15,23 +15,13 @@ const queryClient = new QueryClient({
   },
 });
 
-const router = createBrowserRouter([
-  {
-    path: "*",
-    element: <App />,
-  }
-], {
-  future: {
-    v7_startTransition: true,
-    v7_relativeSplatPath: true
-  }
-});
-
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
       <Toaster position="top-right" />
     </QueryClientProvider>
   </React.StrictMode>
