@@ -2,14 +2,21 @@ import React from 'react';
 
 const Explore = () => {
   return (
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Explore</h1>
+    <div style={{ maxWidth: '1024px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', marginBottom: '1.5rem' }}>
+        Explore
+      </h1>
       
       {/* Explore content will go here */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-600">Discover new recipes and food creators here.</p>
-        </div>
+      <div style={{ 
+        backgroundColor: 'white', 
+        borderRadius: '8px', 
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', 
+        padding: '1.5rem' 
+      }}>
+        <p style={{ color: '#6b7280' }}>
+          Discover new recipes and food content from around the world.
+        </p>
       </div>
     </div>
   );
