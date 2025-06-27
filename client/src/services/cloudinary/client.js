@@ -98,11 +98,8 @@ class CloudinaryClient {
    */
   async uploadPostImage(file, userId, options = {}) {
     const folder = `recipe-app/posts/${userId}`;
-    const transformation = 'w_1200,h_800,c_limit,q_auto,f_auto';
-    
     return this.uploadImage(file, {
       folder,
-      transformation,
       ...options
     });
   }
@@ -116,11 +113,8 @@ class CloudinaryClient {
    */
   async uploadAvatarImage(file, userId, options = {}) {
     const folder = `recipe-app/avatars/${userId}`;
-    const transformation = 'w_400,h_400,c_fill,g_face,q_auto,f_auto';
-    
     return this.uploadImage(file, {
       folder,
-      transformation,
       ...options
     });
   }
