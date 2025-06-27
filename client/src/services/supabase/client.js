@@ -3,6 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
+// Add logging for debugging
+console.log('[Supabase] URL:', supabaseUrl);
+if (supabaseAnonKey) {
+  console.log('[Supabase] Anon Key exists:', true, '| First 8 chars:', supabaseAnonKey.slice(0, 8) + '...');
+} else {
+  console.warn('[Supabase] Anon Key missing!');
+}
+
 // Create a mock client if environment variables are missing
 let supabase;
 
