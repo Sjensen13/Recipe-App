@@ -111,8 +111,8 @@ const CreatePost = () => {
       if (result.success) {
         console.log('Post created successfully:', result.data);
         
-        // Redirect to the new post
-        navigate(`/app/post/${result.data.id}`);
+        // Redirect to the home page to see the new post in the feed
+        navigate('/app/home');
       } else {
         throw new Error(result.message || 'Failed to create post');
       }

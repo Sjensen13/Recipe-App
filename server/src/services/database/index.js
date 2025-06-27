@@ -46,28 +46,148 @@ const saveMockData = async () => {
 
 // Enhanced mock database methods
 const createMockTable = (tableName) => ({
-  select: (columns = '*') => ({
-    eq: (column, value) => ({
-      single: () => {
-        const data = mockData[tableName].find(item => item[column] === value);
-        return Promise.resolve({ data, error: data ? null : { code: 'PGRST116' } });
-      },
+  select: (columns = '*') => {
+    // Parse the select string to understand what to return
+    const isComplexSelect = typeof columns === 'string' && columns.includes('(');
+    
+    return {
+      eq: (column, value) => ({
+        single: () => {
+          const data = mockData[tableName].find(item => item[column] === value);
+          if (!data) {
+            return Promise.resolve({ data: null, error: { code: 'PGRST116' } });
+          }
+          
+          if (isComplexSelect) {
+            // Handle complex selects with joins
+            const result = { ...data };
+            
+            // Add related data based on the select string
+            if (columns.includes('users!posts_user_id_fkey')) {
+              const user = mockData.users.find(u => u.id === data.user_id);
+              result.users = user || null;
+            }
+            
+            if (columns.includes('likes')) {
+              result.likes = mockData.likes.filter(like => like.post_id === data.id) || [];
+            }
+            
+            if (columns.includes('comments')) {
+              const comments = mockData.comments.filter(comment => comment.post_id === data.id) || [];
+              // Add user data to comments if requested
+              if (columns.includes('users!comments_user_id_fkey')) {
+                result.comments = comments.map(comment => ({
+                  ...comment,
+                  users: mockData.users.find(u => u.id === comment.user_id) || null
+                }));
+              } else {
+                result.comments = comments;
+              }
+            }
+            
+            return Promise.resolve({ data: result, error: null });
+          }
+          
+          return Promise.resolve({ data, error: null });
+        }
+      }),
       limit: (count) => {
         const data = mockData[tableName].slice(0, count);
         return Promise.resolve({ data, error: null });
       }
-    }),
-    limit: (count) => {
-      const data = mockData[tableName].slice(0, count);
-      return Promise.resolve({ data, error: null });
+    };
+  },
+  order: (column, options = {}) => {
+    const { ascending = true } = options;
+    return {
+      range: (start, end) => {
+        let data = [...mockData[tableName]];
+        
+        // Sort the data
+        data.sort((a, b) => {
+          const aVal = a[column];
+          const bVal = b[column];
+          
+          if (ascending) {
+            return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+          } else {
+            return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+          }
+        });
+        
+        // Apply range
+        data = data.slice(start, end + 1);
+        
+        // Handle complex selects with joins
+        const isComplexSelect = true; // Assume complex select for posts
+        if (isComplexSelect && tableName === 'posts') {
+          data = data.map(post => {
+            const result = { ...post };
+            
+            // Add user data
+            const user = mockData.users.find(u => u.id === post.user_id);
+            result.users = user || null;
+            
+            // Add likes
+            result.likes = mockData.likes.filter(like => like.post_id === post.id) || [];
+            
+            // Add comments with user data
+            const comments = mockData.comments.filter(comment => comment.post_id === post.id) || [];
+            result.comments = comments.map(comment => ({
+              ...comment,
+              users: mockData.users.find(u => u.id === comment.user_id) || null
+            }));
+            
+            return result;
+          });
+        }
+        
+        return Promise.resolve({ 
+          data, 
+          error: null,
+          count: mockData[tableName].length
+        });
+      }
+    };
+  },
+  range: (start, end) => {
+    let data = mockData[tableName].slice(start, end + 1);
+    
+    // Handle complex selects with joins for posts
+    if (tableName === 'posts') {
+      data = data.map(post => {
+        const result = { ...post };
+        
+        // Add user data
+        const user = mockData.users.find(u => u.id === post.user_id);
+        result.users = user || null;
+        
+        // Add likes
+        result.likes = mockData.likes.filter(like => like.post_id === post.id) || [];
+        
+        // Add comments with user data
+        const comments = mockData.comments.filter(comment => comment.post_id === post.id) || [];
+        result.comments = comments.map(comment => ({
+          ...comment,
+          users: mockData.users.find(u => u.id === comment.user_id) || null
+        }));
+        
+        return result;
+      });
     }
-  }),
+    
+    return Promise.resolve({ 
+      data, 
+      error: null,
+      count: mockData[tableName].length
+    });
+  },
   insert: (data) => ({
     select: () => ({
       single: async () => {
         const newItems = Array.isArray(data) ? data : [data];
         newItems.forEach(item => {
-          if (tableName === 'users') {
+          if (tableName === 'posts') {
             item.id = mockData[tableName].length + 1;
             item.created_at = new Date().toISOString();
             item.updated_at = new Date().toISOString();
@@ -75,6 +195,19 @@ const createMockTable = (tableName) => ({
           mockData[tableName].push(item);
         });
         await saveMockData(); // Persist data
+        
+        // For posts, return with user data
+        if (tableName === 'posts' && newItems.length === 1) {
+          const post = newItems[0];
+          const result = { ...post };
+          
+          // Add user data
+          const user = mockData.users.find(u => u.id === post.user_id);
+          result.users = user || null;
+          
+          return Promise.resolve({ data: result, error: null });
+        }
+        
         return Promise.resolve({ 
           data: newItems.length === 1 ? newItems[0] : newItems, 
           error: null 
@@ -93,6 +226,19 @@ const createMockTable = (tableName) => ({
             updated_at: new Date().toISOString()
           };
           await saveMockData(); // Persist data
+          
+          // For posts, return with user data
+          if (tableName === 'posts') {
+            const post = mockData[tableName][index];
+            const result = { ...post };
+            
+            // Add user data
+            const user = mockData.users.find(u => u.id === post.user_id);
+            result.users = user || null;
+            
+            return Promise.resolve({ data: result, error: null });
+          }
+          
           return Promise.resolve({ 
             data: mockData[tableName][index], 
             error: null 
