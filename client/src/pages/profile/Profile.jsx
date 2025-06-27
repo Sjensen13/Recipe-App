@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/auth/AuthContext';
 import { userService } from '../../services/api/user';
+import { useCloudinary } from '../../hooks/useCloudinary';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import ProfileTabs from '../../components/profile/ProfileTabs';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -12,6 +13,7 @@ const Profile = () => {
   const { userId } = useParams();
   const { user: currentUser, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { uploading: uploadingAvatar, error: uploadError, uploadAvatarImage, clearError } = useCloudinary();
   
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,6 @@ const Profile = () => {
     bio: '',
     avatar_url: ''
   });
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
   const [toast, setToast] = useState({ isVisible: false, message: '', type: 'info' });
 
@@ -87,23 +88,47 @@ const Profile = () => {
     if (!file) return;
 
     try {
-      setUploadingAvatar(true);
-      // For now, we'll use a placeholder URL
-      // In a real app, you'd upload to cloud storage
-      const avatarUrl = URL.createObjectURL(file);
-      setEditForm(prev => ({ ...prev, avatar_url: avatarUrl }));
-      showToast('Avatar updated!', 'success');
+      clearError();
+      
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file', 'error');
+        return;
+      }
+
+      // Check file size (5MB limit)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        showToast('File size must be less than 5MB', 'error');
+        return;
+      }
+
+      // Upload to Cloudinary
+      const result = await uploadAvatarImage(file, currentUser.id);
+      
+      if (!result.success) {
+        throw new Error('Upload failed');
+      }
+
+      // Update the form with the new avatar URL
+      setEditForm(prev => ({ ...prev, avatar_url: result.url }));
+      showToast('Avatar uploaded successfully!', 'success');
     } catch (err) {
-      showToast('Failed to upload avatar', 'error');
+      showToast('Failed to upload avatar: ' + err.message, 'error');
       console.error('Avatar upload error:', err);
-    } finally {
-      setUploadingAvatar(false);
     }
   };
 
   const handleFormChange = (field, value) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
   };
+
+  // Show upload error in toast if there is one
+  useEffect(() => {
+    if (uploadError) {
+      showToast('Upload error: ' + uploadError, 'error');
+    }
+  }, [uploadError]);
 
   if (loading) {
     return (

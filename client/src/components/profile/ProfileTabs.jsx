@@ -28,7 +28,7 @@ const ProfileTabs = ({
             </p>
             {isOwnProfile && (
               <button 
-                onClick={() => onNavigate('/create-post')}
+                onClick={() => onNavigate('/app/create-post')}
                 className="btn-primary"
               >
                 Create Post
@@ -50,7 +50,7 @@ const ProfileTabs = ({
             </p>
             {isOwnProfile && (
               <button 
-                onClick={() => onNavigate('/recipe-search')}
+                onClick={() => onNavigate('/app/recipe-search')}
                 className="btn-primary"
               >
                 Create Recipe

@@ -1,4 +1,5 @@
 import React from 'react';
+import CloudinaryImage from './CloudinaryImage';
 
 const Avatar = ({ 
   src, 
@@ -36,10 +37,16 @@ const Avatar = ({
     <div className={`relative ${sizeClasses[size]} ${className}`}>
       <div className={`${sizeClasses[size]} rounded-full bg-gray-200 flex items-center justify-center overflow-hidden`}>
         {src ? (
-          <img 
+          <CloudinaryImage 
             src={src} 
             alt={alt}
+            size={size === 'sm' ? 'thumbnail' : size === 'lg' || size === 'xl' ? 'medium' : 'small'}
             className="w-full h-full object-cover"
+            fallback={
+              <div className={`w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold ${textSizes[size]}`}>
+                {getInitials(alt || 'User')}
+              </div>
+            }
           />
         ) : (
           <div className={`w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold ${textSizes[size]}`}>

@@ -13,6 +13,7 @@ const likesRoutes = require('./routes/likes');
 const messagesRoutes = require('./routes/messages');
 const recipesRoutes = require('./routes/recipes');
 const hashtagsRoutes = require('./routes/hashtags');
+const uploadRoutes = require('./routes/upload');
 
 const { errorHandler } = require('./middleware/errorHandler');
 const { connectDatabase } = require('./services/database');
@@ -52,6 +53,7 @@ app.use('/api/likes', likesRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/recipes', recipesRoutes);
 app.use('/api/hashtags', hashtagsRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
