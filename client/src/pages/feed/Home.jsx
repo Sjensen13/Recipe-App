@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getPosts } from '../../services/api/posts';
+import { getPosts, likePost, addComment } from '../../services/api/posts';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
 
@@ -13,6 +13,10 @@ const Home = () => {
     limit: 10,
     total: 0
   });
+  const [commentInput, setCommentInput] = useState('');
+  const [showCommentInputId, setShowCommentInputId] = useState(null);
+  const [likesState, setLikesState] = useState({});
+  const [commentsState, setCommentsState] = useState({});
 
   // Fetch posts on component mount
   useEffect(() => {
@@ -53,6 +57,45 @@ const Home = () => {
     } else {
       const diffInDays = Math.floor(diffInHours / 24);
       return `${diffInDays}d ago`;
+    }
+  };
+
+  // Handler stubs for profile, like, and comment
+  const handleProfileClick = (userId) => {
+    // TODO: Implement navigation to user profile
+    window.location.href = `/app/profile/${userId}`;
+  };
+  const handleLike = async (postId) => {
+    try {
+      const res = await likePost(postId);
+      setLikesState(prev => {
+        const prevLikes = prev[postId] || posts.find(p => p.id === postId)?.likes || [];
+        if (res.liked) {
+          // Add a dummy like (should use userId from auth)
+          return { ...prev, [postId]: [...prevLikes, { user_id: 'me' }] };
+        } else {
+          return { ...prev, [postId]: prevLikes.filter(like => like.user_id !== 'me') };
+        }
+      });
+    } catch (err) {
+      alert('Failed to like post');
+    }
+  };
+  const handleComment = (postId) => {
+    setShowCommentInputId(postId);
+  };
+  const handleAddComment = async (postId) => {
+    if (!commentInput.trim()) return;
+    try {
+      const res = await addComment(postId, commentInput);
+      setCommentsState(prev => {
+        const prevComments = prev[postId] || posts.find(p => p.id === postId)?.comments || [];
+        return { ...prev, [postId]: [...prevComments, res.comment] };
+      });
+      setCommentInput('');
+      setShowCommentInputId(null);
+    } catch (err) {
+      alert('Failed to add comment');
     }
   };
 
@@ -144,22 +187,13 @@ const Home = () => {
                 borderRadius: '12px', 
                 boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', 
                 overflow: 'hidden',
-                transition: 'transform 0.2s, box-shadow 0.2s'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 4px 12px 0 rgba(0, 0, 0, 0.15)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
               }}
             >
               {/* Post Header */}
               <div style={{ padding: '1.5rem 1.5rem 0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                   <img 
-                    src={post.users?.avatar_url || 'https://via.placeholder.com/40x40?text=U'} 
+                    src={post.users?.avatar_url || require('../../assets/images/default-avatar.png')} 
                     alt={post.users?.name || 'User'}
                     style={{ 
                       width: '40px', 
@@ -169,9 +203,12 @@ const Home = () => {
                     }}
                   />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '600', color: '#111827' }}>
+                    <button
+                      style={{ fontWeight: '600', color: '#111827', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                      onClick={() => handleProfileClick(post.users?.id)}
+                    >
                       {post.users?.name || 'Unknown User'}
-                    </div>
+                    </button>
                     <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                       {formatDate(post.created_at)}
                     </div>
@@ -249,14 +286,31 @@ const Home = () => {
                   paddingTop: '1rem',
                   borderTop: '1px solid #f3f4f6'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280' }}>
+                  <button
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}
+                    onClick={() => handleLike(post.id)}
+                  >
                     <span>❤️</span>
-                    <span>{post.likes?.length || 0}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280' }}>
+                    <span>{(likesState[post.id] || post.likes || []).length}</span>
+                  </button>
+                  <button
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}
+                    onClick={() => handleComment(post.id)}
+                  >
                     <span>💬</span>
-                    <span>{post.comments?.length || 0}</span>
-                  </div>
+                    <span>{(commentsState[post.id] || post.comments || []).length}</span>
+                  </button>
+                  {showCommentInputId === post.id && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <input
+                        value={commentInput}
+                        onChange={e => setCommentInput(e.target.value)}
+                        placeholder="Write a comment..."
+                      />
+                      <button onClick={() => handleAddComment(post.id)}>Submit</button>
+                      <button onClick={() => setShowCommentInputId(null)}>Cancel</button>
+                    </div>
+                  )}
                   <Link 
                     to={`/app/post/${post.id}`}
                     style={{

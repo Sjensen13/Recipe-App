@@ -94,4 +94,26 @@ export const getUserPosts = async (userId, params = {}) => {
     console.error('Error fetching user posts:', error);
     throw error;
   }
+};
+
+// Like or unlike a post
+export const likePost = async (postId) => {
+  try {
+    const response = await apiClient.post(`/posts/${postId}/like`);
+    return response.data;
+  } catch (error) {
+    console.error('Error liking post:', error);
+    throw error;
+  }
+};
+
+// Add a comment to a post
+export const addComment = async (postId, content) => {
+  try {
+    const response = await apiClient.post(`/posts/${postId}/comments`, { content });
+    return response.data;
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    throw error;
+  }
 }; 

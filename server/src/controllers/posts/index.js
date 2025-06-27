@@ -330,10 +330,66 @@ const deletePost = async (req, res) => {
   }
 };
 
+// Like or unlike a post
+const likePost = async (req, res) => {
+  const supabase = getSupabase();
+  const userId = req.user.id;
+  const postId = req.params.id;
+
+  // Check if user already liked the post
+  const { data: existingLike } = await supabase
+    .from('likes')
+    .select('id')
+    .eq('post_id', postId)
+    .eq('user_id', userId)
+    .single();
+
+  if (existingLike) {
+    // Unlike (remove like)
+    await supabase.from('likes').delete().eq('id', existingLike.id);
+    return res.json({ success: true, liked: false });
+  } else {
+    // Like (add like)
+    await supabase.from('likes').insert({ post_id: postId, user_id: userId });
+    return res.json({ success: true, liked: true });
+  }
+};
+
+// Add a comment to a post
+const addComment = async (req, res) => {
+  const supabase = getSupabase();
+  const userId = req.user.id;
+  const postId = req.params.id;
+  const { content } = req.body;
+
+  if (!content) {
+    return res.status(400).json({ success: false, message: 'Content is required' });
+  }
+
+  const { data: comment, error } = await supabase
+    .from('comments')
+    .insert({
+      post_id: postId,
+      user_id: userId,
+      content,
+      created_at: new Date().toISOString()
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    return res.status(500).json({ success: false, message: 'Failed to add comment' });
+  }
+
+  res.status(201).json({ success: true, comment });
+};
+
 module.exports = {
   getPosts,
   getPost,
   createPost,
   updatePost,
-  deletePost
+  deletePost,
+  likePost,
+  addComment
 }; 

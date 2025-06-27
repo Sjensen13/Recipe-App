@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getPost } from '../../services/api/posts';
+import { getPost, likePost, addComment } from '../../services/api/posts';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
 
@@ -9,6 +9,11 @@ const PostDetail = () => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [likes, setLikes] = useState(post?.likes || []);
+  const [comments, setComments] = useState(post?.comments || []);
+  const [liked, setLiked] = useState(post?.likes?.some(like => like.user_id === 'me') || false);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentInput, setCommentInput] = useState('');
 
   useEffect(() => {
     fetchPost();
@@ -23,6 +28,9 @@ const PostDetail = () => {
       
       if (response.success) {
         setPost(response.data);
+        setLikes(response.data.likes || []);
+        setComments(response.data.comments || []);
+        setLiked(response.data.likes?.some(like => like.user_id === 'me') || false);
       } else {
         throw new Error(response.message || 'Failed to fetch post');
       }
@@ -43,6 +51,41 @@ const PostDetail = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleProfileClick = (userId) => {
+    // TODO: Implement navigation to user profile
+    window.location.href = `/app/profile/${userId}`;
+  };
+
+  const handleLike = async (postId) => {
+    try {
+      const res = await likePost(postId);
+      setLiked(res.liked);
+      if (res.liked) {
+        setLikes([...likes, { user_id: 'me' }]);
+      } else {
+        setLikes(likes.filter(like => like.user_id !== 'me'));
+      }
+    } catch (err) {
+      alert('Failed to like post');
+    }
+  };
+
+  const handleComment = () => {
+    setShowCommentInput(true);
+  };
+
+  const handleAddComment = async () => {
+    if (!commentInput.trim()) return;
+    try {
+      const res = await addComment(post.id, commentInput);
+      setComments([...comments, res.comment]);
+      setCommentInput('');
+      setShowCommentInput(false);
+    } catch (err) {
+      alert('Failed to add comment');
+    }
   };
 
   if (loading) {
@@ -130,20 +173,28 @@ const PostDetail = () => {
         {/* Post Header */}
         <div style={{ padding: '2rem 2rem 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-            <img 
-              src={post.users?.avatar_url || 'https://via.placeholder.com/50x50?text=U'} 
-              alt={post.users?.name || 'User'}
-              style={{ 
-                width: '50px', 
-                height: '50px', 
-                borderRadius: '50%',
-                objectFit: 'cover'
-              }}
-            />
+            <button
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              onClick={() => handleProfileClick(post.users?.id)}
+            >
+              <img 
+                src={post.users?.avatar_url || require('../../assets/images/default-avatar.png')} 
+                alt={post.users?.name || 'User'}
+                style={{ 
+                  width: '50px', 
+                  height: '50px', 
+                  borderRadius: '50%',
+                  objectFit: 'cover'
+                }}
+              />
+            </button>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: '600', color: '#111827', fontSize: '1.125rem' }}>
+              <button
+                style={{ fontWeight: '600', color: '#111827', fontSize: '1.125rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                onClick={() => handleProfileClick(post.users?.id)}
+              >
                 {post.users?.name || 'Unknown User'}
-              </div>
+              </button>
               <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                 {formatDate(post.created_at)}
               </div>
@@ -249,18 +300,24 @@ const PostDetail = () => {
             paddingTop: '2rem',
             borderTop: '1px solid #f3f4f6'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280' }}>
-              <span style={{ fontSize: '1.25rem' }}>❤️</span>
-              <span style={{ fontWeight: '500' }}>{post.likes?.length || 0} likes</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280' }}>
-              <span style={{ fontSize: '1.25rem' }}>💬</span>
-              <span style={{ fontWeight: '500' }}>{post.comments?.length || 0} comments</span>
-            </div>
+            <button
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem' }}
+              onClick={() => handleLike(post.id)}
+            >
+              <span>❤️</span>
+              <span style={{ fontWeight: '500' }}>{likes.length} likes</span>
+            </button>
+            <button
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem' }}
+              onClick={handleComment}
+            >
+              <span>💬</span>
+              <span style={{ fontWeight: '500' }}>{comments.length} comments</span>
+            </button>
           </div>
 
           {/* Comments Section */}
-          {post.comments && post.comments.length > 0 && (
+          {comments && comments.length > 0 && (
             <div style={{ marginTop: '2rem' }}>
               <h3 style={{ 
                 fontSize: '1.25rem', 
@@ -271,7 +328,7 @@ const PostDetail = () => {
                 Comments
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {post.comments.map((comment) => (
+                {comments.map((comment) => (
                   <div 
                     key={comment.id}
                     style={{ 
@@ -294,6 +351,18 @@ const PostDetail = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {showCommentInput && (
+            <div style={{ marginTop: '0.5rem' }}>
+              <input
+                value={commentInput}
+                onChange={e => setCommentInput(e.target.value)}
+                placeholder="Write a comment..."
+              />
+              <button onClick={handleAddComment}>Submit</button>
+              <button onClick={() => setShowCommentInput(false)}>Cancel</button>
             </div>
           )}
         </div>

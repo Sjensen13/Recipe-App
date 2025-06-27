@@ -5,7 +5,9 @@ const {
   getPost,
   createPost,
   updatePost,
-  deletePost
+  deletePost,
+  likePost,
+  addComment
 } = require('../controllers/posts');
 
 const router = express.Router();
@@ -27,5 +29,11 @@ router.put('/:id', updatePost);
 
 // Delete post
 router.delete('/:id', deletePost);
+
+// Like or unlike a post
+router.post('/:id/like', likePost);
+
+// Add a comment to a post
+router.post('/:id/comments', addComment);
 
 module.exports = router;
