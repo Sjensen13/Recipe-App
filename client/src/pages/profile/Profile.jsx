@@ -8,6 +8,7 @@ import ProfileTabs from '../../components/profile/ProfileTabs';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
 import Toast from '../../components/ui/Toast';
+import { getUserPosts } from '../../services/api/posts';
 
 const Profile = () => {
   const { userId } = useParams();
@@ -27,12 +28,16 @@ const Profile = () => {
   });
   const [activeTab, setActiveTab] = useState('posts');
   const [toast, setToast] = useState({ isVisible: false, message: '', type: 'info' });
+  const [userPosts, setUserPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState(null);
 
   // Check if viewing own profile
   const isOwnProfile = !userId || userId === 'me' || (currentUser && currentUser.id === userId);
 
   useEffect(() => {
     fetchProfile();
+    fetchUserPosts();
   }, [userId]);
 
   const showToast = (message, type = 'info') => {
@@ -60,6 +65,26 @@ const Profile = () => {
       console.error('Profile fetch error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserPosts = async () => {
+    try {
+      setPostsLoading(true);
+      setPostsError(null);
+      const id = userId && userId !== 'me' ? userId : currentUser?.id;
+      if (!id) {
+        setUserPosts([]);
+        setPostsLoading(false);
+        return;
+      }
+      const response = await getUserPosts(id);
+      setUserPosts(response.data || []);
+    } catch (err) {
+      setPostsError('Failed to load posts');
+      setUserPosts([]);
+    } finally {
+      setPostsLoading(false);
     }
   };
 
@@ -130,6 +155,9 @@ const Profile = () => {
     }
   }, [uploadError]);
 
+  // Debug log for posts section
+  console.log("Rendering posts section", { postsLoading, postsError, userPosts });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -184,7 +212,11 @@ const Profile = () => {
           isEditing={isEditing}
           editForm={editForm}
           uploadingAvatar={uploadingAvatar}
-          stats={userStats}
+          stats={{
+            posts: userPosts.length,
+            followers: 0,
+            following: 0
+          }}
           onEditClick={() => setIsEditing(true)}
           onEditSubmit={handleEditSubmit}
           onEditCancel={() => setIsEditing(false)}
@@ -197,6 +229,9 @@ const Profile = () => {
           setActiveTab={setActiveTab}
           isOwnProfile={isOwnProfile}
           onNavigate={navigate}
+          userPosts={userPosts}
+          postsLoading={postsLoading}
+          postsError={postsError}
         />
       </div>
 
