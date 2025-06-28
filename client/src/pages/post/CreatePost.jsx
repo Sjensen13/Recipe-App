@@ -8,8 +8,7 @@ const CreatePost = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: '',
-    content: '',
-    hashtags: ''
+    content: ''
   });
   const [imageUrl, setImageUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +73,13 @@ const CreatePost = () => {
     }
   };
 
+  // Extract hashtags from content
+  const extractHashtags = (content) => {
+    const hashtagRegex = /#(\w+)/g;
+    const matches = content.match(hashtagRegex);
+    return matches ? matches.map(tag => tag.slice(1)) : [];
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -93,14 +99,15 @@ const CreatePost = () => {
         throw new Error('Please log in to create a post');
       }
 
+      // Extract hashtags from content
+      const hashtags = extractHashtags(formData.content);
+
       // Prepare post data
       const postData = {
         title: formData.title.trim(),
         content: formData.content.trim(),
         image_url: imageUrl || null,
-        hashtags: formData.hashtags 
-          ? formData.hashtags.split(',').map(tag => tag.trim()).filter(tag => tag)
-          : []
+        hashtags: hashtags
       };
 
       console.log('Creating post with data:', postData);
@@ -194,7 +201,7 @@ const CreatePost = () => {
               name="content"
               value={formData.content}
               onChange={handleInputChange}
-              placeholder="Share your thoughts, recipe, or story..."
+              placeholder="Share your thoughts, recipe, or story... Use #hashtags to categorize your post!"
               required
               rows={6}
               style={{
@@ -210,38 +217,8 @@ const CreatePost = () => {
               onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
               onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
             />
-          </div>
-
-          {/* Hashtags Input */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '0.5rem', 
-              color: '#374151',
-              fontWeight: '500'
-            }}>
-              Hashtags (optional)
-            </label>
-            <input
-              type="text"
-              name="hashtags"
-              value={formData.hashtags}
-              onChange={handleInputChange}
-              placeholder="recipe, cooking, food (comma separated)"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                outline: 'none',
-                transition: 'border-color 0.2s'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-              onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-            />
             <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>
-              Separate hashtags with commas
+              Use #hashtags in your content to help others discover your post
             </p>
           </div>
 

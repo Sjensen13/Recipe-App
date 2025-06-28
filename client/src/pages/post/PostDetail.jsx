@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getPost, likePost, addComment } from '../../services/api/posts';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
@@ -7,6 +7,7 @@ import { useAuth } from '../../context/auth/AuthContext';
 
 const PostDetail = () => {
   const { postId } = useParams();
+  const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -89,6 +90,11 @@ const PostDetail = () => {
     } catch (err) {
       alert('Failed to add comment');
     }
+  };
+
+  // Handler for hashtag clicks
+  const handleHashtagClick = (hashtag) => {
+    navigate(`/app/home?hashtag=${hashtag}`);
   };
 
   if (loading) {
@@ -251,19 +257,25 @@ const PostDetail = () => {
               marginBottom: '2rem' 
             }}>
               {post.hashtags.map((tag, index) => (
-                <span 
+                <button
                   key={index}
+                  onClick={() => handleHashtagClick(tag)}
                   style={{
                     backgroundColor: '#f3f4f6',
                     color: '#374151',
                     padding: '0.5rem 1rem',
                     borderRadius: '25px',
                     fontSize: '1rem',
-                    fontWeight: '500'
+                    fontWeight: '500',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
                   }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
                 >
                   #{tag}
-                </span>
+                </button>
               ))}
             </div>
           )}

@@ -6,6 +6,7 @@ import apiClient from './client';
  * @param {number} params.page - Page number
  * @param {number} params.limit - Posts per page
  * @param {string} params.userId - Filter by user ID
+ * @param {string} params.hashtag - Filter by hashtag
  */
 export const getPosts = async (params = {}) => {
   try {

@@ -7,7 +7,7 @@ const { getSupabase } = require('../../services/database');
 const getPosts = async (req, res) => {
   const supabase = getSupabase();
   try {
-    const { page = 1, limit = 10, userId } = req.query;
+    const { page = 1, limit = 10, userId, hashtag } = req.query;
     const offset = (page - 1) * limit;
 
     let query = supabase
@@ -29,6 +29,11 @@ const getPosts = async (req, res) => {
     // Filter by user if specified
     if (userId) {
       query = query.eq('user_id', userId);
+    }
+
+    // Filter by hashtag if specified
+    if (hashtag) {
+      query = query.contains('hashtags', [hashtag]);
     }
 
     const { data: posts, error, count } = await query;
