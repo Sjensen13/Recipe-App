@@ -5,6 +5,7 @@ import { userService } from '../../services/api/user';
 import { useCloudinary } from '../../hooks/useCloudinary';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import ProfileTabs from '../../components/profile/ProfileTabs';
+import FollowersList from '../../components/profile/FollowersList';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
 import Toast from '../../components/ui/Toast';
@@ -31,14 +32,23 @@ const Profile = () => {
   const [userPosts, setUserPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [showFollowersList, setShowFollowersList] = useState(false);
+  const [showFollowingList, setShowFollowingList] = useState(false);
 
-  // Check if viewing own profile
+  // Check if viewing own profile - computed value that updates when currentUser changes
   const isOwnProfile = !userId || userId === 'me' || (currentUser && currentUser.id === userId);
 
   useEffect(() => {
     fetchProfile();
     fetchUserPosts();
-  }, [userId]);
+    if (userId && currentUser) {
+      fetchFollowData();
+    }
+  }, [userId, currentUser?.id]); // Depend on userId and currentUser.id changes
 
   const showToast = (message, type = 'info') => {
     setToast({ isVisible: true, message, type });
@@ -63,7 +73,16 @@ const Profile = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await userService.getProfile();
+      
+      let response;
+      if (isOwnProfile) {
+        // Fetch current user's profile
+        response = await userService.getProfile();
+      } else {
+        // Fetch other user's profile
+        response = await userService.getUserById(userId);
+      }
+      
       setProfile(response.data.user);
       setEditForm({
         username: response.data.user.username || response.data.user.user_metadata?.username || '',
@@ -99,64 +118,127 @@ const Profile = () => {
     }
   };
 
+  const fetchFollowData = async () => {
+    try {
+      // Determine the actual user ID to use
+      const targetUserId = userId === 'me' ? currentUser?.id : userId;
+      
+      if (!targetUserId) {
+        console.log('No target user ID available for follow data');
+        return;
+      }
+
+      // Fetch follow status (only if not viewing own profile)
+      if (!isOwnProfile) {
+        const followResponse = await userService.checkIsFollowing(targetUserId);
+        setIsFollowing(followResponse.data.isFollowing);
+      }
+
+      // Fetch followers count
+      const followersResponse = await userService.getFollowersCount(targetUserId);
+      setFollowersCount(followersResponse.data.followersCount);
+
+      // Fetch following count
+      const followingResponse = await userService.getFollowingCount(targetUserId);
+      setFollowingCount(followingResponse.data.followingCount);
+    } catch (err) {
+      console.error('Failed to fetch follow data:', err);
+      // Set defaults if fetch fails
+      setIsFollowing(false);
+      setFollowersCount(0);
+      setFollowingCount(0);
+    }
+  };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await userService.updateProfile(editForm);
-      setProfile(prev => ({
-        ...prev,
-        ...editForm,
-        user_metadata: {
-          ...prev.user_metadata,
-          ...editForm
-        }
-      }));
+      await userService.updateProfile(editForm);
+      await fetchProfile();
       setIsEditing(false);
-      showToast('Profile updated successfully!', 'success');
+      showToast('Profile updated successfully', 'success');
     } catch (err) {
       showToast('Failed to update profile', 'error');
       console.error('Profile update error:', err);
     }
   };
 
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
+  const handleAvatarUpload = async (file) => {
     try {
-      clearError();
-      
-      // Validate file
-      if (!file.type.startsWith('image/')) {
-        showToast('Please select a valid image file', 'error');
-        return;
-      }
-
-      // Check file size (5MB limit)
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        showToast('File size must be less than 5MB', 'error');
-        return;
-      }
-
-      // Upload to Cloudinary
-      const result = await uploadAvatarImage(file, currentUser.id);
-      
-      if (!result.success) {
-        throw new Error('Upload failed');
-      }
-
-      // Update the form with the new avatar URL
-      setEditForm(prev => ({ ...prev, avatar_url: result.url }));
-      showToast('Avatar uploaded successfully!', 'success');
+      const avatarUrl = await uploadAvatarImage(file);
+      setEditForm(prev => ({
+        ...prev,
+        avatar_url: avatarUrl
+      }));
+      showToast('Avatar uploaded successfully', 'success');
     } catch (err) {
-      showToast('Failed to upload avatar: ' + err.message, 'error');
+      showToast('Failed to upload avatar', 'error');
       console.error('Avatar upload error:', err);
     }
   };
 
-  const handleFormChange = (field, value) => {
-    setEditForm(prev => ({ ...prev, [field]: value }));
+  const handleFollow = async () => {
+    if (!isAuthenticated) {
+      showToast('Please log in to follow users', 'error');
+      return;
+    }
+
+    try {
+      setFollowLoading(true);
+      
+      if (isFollowing) {
+        // Unfollow user
+        await userService.unfollowUser(userId);
+        setIsFollowing(false);
+        
+        // When viewing someone else's profile, decrease their followers count
+        if (!isOwnProfile) {
+          setFollowersCount(prev => Math.max(0, prev - 1));
+        }
+        
+        showToast('Unfollowed successfully', 'success');
+      } else {
+        // Follow user
+        await userService.followUser(userId);
+        setIsFollowing(true);
+        
+        // When viewing someone else's profile, increase their followers count
+        if (!isOwnProfile) {
+          setFollowersCount(prev => prev + 1);
+        }
+        
+        showToast('Followed successfully', 'success');
+      }
+    } catch (err) {
+      showToast('Failed to update follow status', 'error');
+      console.error('Follow error:', err);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleFollowersClick = () => {
+    setShowFollowersList(true);
+  };
+
+  const handleFollowingClick = () => {
+    setShowFollowingList(true);
+  };
+
+  const handleCloseFollowersList = () => {
+    setShowFollowersList(false);
+  };
+
+  const handleCloseFollowingList = () => {
+    setShowFollowingList(false);
   };
 
   // Show upload error in toast if there is one
@@ -165,9 +247,6 @@ const Profile = () => {
       showToast('Upload error: ' + uploadError, 'error');
     }
   }, [uploadError]);
-
-  // Debug log for posts section
-  console.log("Rendering posts section", { postsLoading, postsError, userPosts });
 
   if (loading) {
     return (
@@ -207,13 +286,6 @@ const Profile = () => {
     created_at: profile.created_at
   };
 
-  // Mock stats - in a real app, these would come from the API
-  const userStats = {
-    posts: 0,
-    followers: 0,
-    following: 0
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -225,8 +297,8 @@ const Profile = () => {
           uploadingAvatar={uploadingAvatar}
           stats={{
             posts: userPosts.length,
-            followers: 0,
-            following: 0
+            followers: followersCount,
+            following: followingCount
           }}
           onEditClick={() => setIsEditing(true)}
           onEditSubmit={handleEditSubmit}
@@ -234,6 +306,11 @@ const Profile = () => {
           onFormChange={handleFormChange}
           onAvatarUpload={handleAvatarUpload}
           onSignout={handleSignout}
+          isFollowing={isFollowing}
+          followLoading={followLoading}
+          onFollow={handleFollow}
+          onFollowersClick={handleFollowersClick}
+          onFollowingClick={handleFollowingClick}
         />
 
         <ProfileTabs
@@ -246,6 +323,24 @@ const Profile = () => {
           postsError={postsError}
         />
       </div>
+
+      {/* Followers List Modal */}
+      {showFollowersList && (
+        <FollowersList
+          userId={userId}
+          type="followers"
+          onClose={handleCloseFollowersList}
+        />
+      )}
+
+      {/* Following List Modal */}
+      {showFollowingList && (
+        <FollowersList
+          userId={userId}
+          type="following"
+          onClose={handleCloseFollowingList}
+        />
+      )}
 
       <Toast
         message={toast.message}
