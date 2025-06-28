@@ -13,7 +13,8 @@ const ProfileHeader = ({
   onEditSubmit, 
   onEditCancel, 
   onFormChange, 
-  onAvatarUpload 
+  onAvatarUpload,
+  onSignout 
 }) => {
   return (
     <div className="card p-6 mb-6">
@@ -94,12 +95,20 @@ const ProfileHeader = ({
 
               {/* Action Buttons */}
               {isOwnProfile ? (
-                <button 
-                  onClick={onEditClick}
-                  className="btn-primary mt-4"
-                >
-                  Edit Profile
-                </button>
+                <div className="flex gap-3 mt-4">
+                  <button 
+                    onClick={onEditClick}
+                    className="btn-primary"
+                  >
+                    Edit Profile
+                  </button>
+                  <button 
+                    onClick={onSignout}
+                    className="btn-secondary"
+                  >
+                    Sign Out
+                  </button>
+                </div>
               ) : (
                 <div className="flex gap-3 mt-4">
                   <button className="btn-primary">

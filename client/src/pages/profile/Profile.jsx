@@ -12,7 +12,7 @@ import { getUserPosts } from '../../services/api/posts';
 
 const Profile = () => {
   const { userId } = useParams();
-  const { user: currentUser, isAuthenticated } = useAuth();
+  const { user: currentUser, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const { uploading: uploadingAvatar, error: uploadError, uploadAvatarImage, clearError } = useCloudinary();
   
@@ -46,6 +46,17 @@ const Profile = () => {
 
   const hideToast = () => {
     setToast(prev => ({ ...prev, isVisible: false }));
+  };
+
+  const handleSignout = async () => {
+    try {
+      await logout();
+      showToast('Signed out successfully', 'success');
+      navigate('/');
+    } catch (error) {
+      showToast('Failed to sign out', 'error');
+      console.error('Signout error:', error);
+    }
   };
 
   const fetchProfile = async () => {
@@ -222,6 +233,7 @@ const Profile = () => {
           onEditCancel={() => setIsEditing(false)}
           onFormChange={handleFormChange}
           onAvatarUpload={handleAvatarUpload}
+          onSignout={handleSignout}
         />
 
         <ProfileTabs
