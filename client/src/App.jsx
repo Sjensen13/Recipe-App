@@ -4,6 +4,7 @@ import { ThemeProvider } from './context/theme/ThemeContext';
 import { NotificationProvider } from './context/notification/NotificationContext';
 import { AuthProvider } from './context/auth/AuthContext';
 import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Home from './pages/feed/Home';
@@ -22,6 +23,8 @@ function App() {
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route path="home" element={<Home />} />
               <Route path="explore" element={<Explore />} />

@@ -14,7 +14,12 @@ const ProfileHeader = ({
   onEditCancel, 
   onFormChange, 
   onAvatarUpload,
-  onSignout 
+  onSignout,
+  isFollowing = false,
+  followLoading = false,
+  onFollow,
+  onFollowersClick,
+  onFollowingClick
 }) => {
   return (
     <div className="card p-6 mb-6">
@@ -35,40 +40,46 @@ const ProfileHeader = ({
             <form onSubmit={onEditSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  value={editForm.username}
-                  onChange={(e) => onFormChange('username', e.target.value)}
-                  className="input-field"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Name
                 </label>
                 <input
                   type="text"
+                  name="name"
                   value={editForm.name}
-                  onChange={(e) => onFormChange('name', e.target.value)}
-                  className="input-field"
-                  required
+                  onChange={onFormChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your name"
                 />
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  value={editForm.username}
+                  onChange={onFormChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your username"
+                />
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Bio
                 </label>
                 <textarea
+                  name="bio"
                   value={editForm.bio}
-                  onChange={(e) => onFormChange('bio', e.target.value)}
-                  className="input-field"
-                  rows={3}
-                  placeholder="Tell us about yourself..."
+                  onChange={onFormChange}
+                  rows="3"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Tell us about yourself"
                 />
               </div>
+              
               <div className="flex gap-3">
                 <button type="submit" className="btn-primary">
                   Save Changes
@@ -91,7 +102,11 @@ const ProfileHeader = ({
               <p className="text-gray-700 mb-4">{userData.bio}</p>
               
               {/* Stats */}
-              <ProfileStats stats={stats} />
+              <ProfileStats 
+                stats={stats} 
+                onFollowersClick={onFollowersClick}
+                onFollowingClick={onFollowingClick}
+              />
 
               {/* Action Buttons */}
               {isOwnProfile ? (
@@ -111,8 +126,12 @@ const ProfileHeader = ({
                 </div>
               ) : (
                 <div className="flex gap-3 mt-4">
-                  <button className="btn-primary">
-                    Follow
+                  <button 
+                    onClick={onFollow}
+                    disabled={followLoading}
+                    className={`btn-primary ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {followLoading ? 'Loading...' : (isFollowing ? 'Unfollow' : 'Follow')}
                   </button>
                   <button className="btn-secondary">
                     Message
