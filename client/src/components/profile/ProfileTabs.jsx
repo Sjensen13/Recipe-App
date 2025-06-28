@@ -1,7 +1,8 @@
 import React from 'react';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import ErrorState from '../ui/ErrorState';
-import { likePost, addComment } from '../../services/api/posts';
+import { likePost, addComment, getPost } from '../../services/api/posts';
+import { useAuth } from '../../context/auth/AuthContext';
 
 const ProfileTabs = ({ 
   activeTab, 
@@ -24,6 +25,8 @@ const ProfileTabs = ({
   const [showCommentInputId, setShowCommentInputId] = React.useState(null);
   const [likesState, setLikesState] = React.useState({});
   const [commentsState, setCommentsState] = React.useState({});
+
+  const { user } = useAuth();
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -192,17 +195,19 @@ const ProfileTabs = ({
     }
   };
 
+  const fetchAndSetPost = async (postId) => {
+    const response = await getPost(postId);
+    if (typeof fetchUserPosts === 'function') {
+      fetchUserPosts();
+    }
+    setLikesState(prev => ({ ...prev, [postId]: response.data.likes || [] }));
+    setCommentsState(prev => ({ ...prev, [postId]: response.data.comments || [] }));
+  };
+
   const handleLike = async (postId) => {
     try {
-      const res = await likePost(postId);
-      setLikesState(prev => {
-        const prevLikes = prev[postId] || userPosts.find(p => p.id === postId)?.likes || [];
-        if (res.liked) {
-          return { ...prev, [postId]: [...prevLikes, { user_id: 'me' }] };
-        } else {
-          return { ...prev, [postId]: prevLikes.filter(like => like.user_id !== 'me') };
-        }
-      });
+      await likePost(postId);
+      await fetchAndSetPost(postId);
     } catch (err) {
       alert('Failed to like post');
     }
@@ -215,11 +220,8 @@ const ProfileTabs = ({
   const handleAddComment = async (postId) => {
     if (!commentInput.trim()) return;
     try {
-      const res = await addComment(postId, commentInput);
-      setCommentsState(prev => {
-        const prevComments = prev[postId] || userPosts.find(p => p.id === postId)?.comments || [];
-        return { ...prev, [postId]: [...prevComments, res.comment] };
-      });
+      await addComment(postId, commentInput);
+      await fetchAndSetPost(postId);
       setCommentInput('');
       setShowCommentInputId(null);
     } catch (err) {

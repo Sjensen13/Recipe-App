@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getPost, likePost, addComment } from '../../services/api/posts';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
+import { useAuth } from '../../context/auth/AuthContext';
 
 const PostDetail = () => {
   const { postId } = useParams();
@@ -14,6 +15,7 @@ const PostDetail = () => {
   const [liked, setLiked] = useState(post?.likes?.some(like => like.user_id === 'me') || false);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [commentInput, setCommentInput] = useState('');
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchPost();
@@ -30,7 +32,7 @@ const PostDetail = () => {
         setPost(response.data);
         setLikes(response.data.likes || []);
         setComments(response.data.comments || []);
-        setLiked(response.data.likes?.some(like => like.user_id === 'me') || false);
+        setLiked(response.data.likes?.some(like => like.user_id === user?.id));
       } else {
         throw new Error(response.message || 'Failed to fetch post');
       }
@@ -61,11 +63,12 @@ const PostDetail = () => {
   const handleLike = async (postId) => {
     try {
       const res = await likePost(postId);
-      setLiked(res.liked);
       if (res.liked) {
-        setLikes([...likes, { user_id: 'me' }]);
+        setLikes([...likes, { user_id: user.id }]);
+        setLiked(true);
       } else {
-        setLikes(likes.filter(like => like.user_id !== 'me'));
+        setLikes(likes.filter(like => like.user_id !== user.id));
+        setLiked(false);
       }
     } catch (err) {
       alert('Failed to like post');
@@ -79,8 +82,8 @@ const PostDetail = () => {
   const handleAddComment = async () => {
     if (!commentInput.trim()) return;
     try {
-      const res = await addComment(post.id, commentInput);
-      setComments([...comments, res.comment]);
+      await addComment(post.id, commentInput);
+      await fetchPost();
       setCommentInput('');
       setShowCommentInput(false);
     } catch (err) {
@@ -305,14 +308,14 @@ const PostDetail = () => {
               onClick={() => handleLike(post.id)}
             >
               <span>❤️</span>
-              <span style={{ fontWeight: '500' }}>{likes.length} likes</span>
+              
             </button>
             <button
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem' }}
               onClick={handleComment}
             >
               <span>💬</span>
-              <span style={{ fontWeight: '500' }}>{comments.length} comments</span>
+              
             </button>
           </div>
 

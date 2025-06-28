@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getPosts, likePost, addComment } from '../../services/api/posts';
+import { getPosts, likePost, addComment, getPost } from '../../services/api/posts';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
+import { useAuth } from '../../context/auth/AuthContext';
 
 const Home = () => {
   const [posts, setPosts] = useState([]);
@@ -17,6 +18,7 @@ const Home = () => {
   const [showCommentInputId, setShowCommentInputId] = useState(null);
   const [likesState, setLikesState] = useState({});
   const [commentsState, setCommentsState] = useState({});
+  const { user } = useAuth();
 
   // Fetch posts on component mount
   useEffect(() => {
@@ -60,6 +62,13 @@ const Home = () => {
     }
   };
 
+  const fetchAndSetPost = async (postId) => {
+    const response = await getPost(postId);
+    setPosts(prevPosts => prevPosts.map(p => p.id === postId ? { ...p, ...response.data } : p));
+    setLikesState(prev => ({ ...prev, [postId]: response.data.likes || [] }));
+    setCommentsState(prev => ({ ...prev, [postId]: response.data.comments || [] }));
+  };
+
   // Handler stubs for profile, like, and comment
   const handleProfileClick = (userId) => {
     // TODO: Implement navigation to user profile
@@ -67,16 +76,8 @@ const Home = () => {
   };
   const handleLike = async (postId) => {
     try {
-      const res = await likePost(postId);
-      setLikesState(prev => {
-        const prevLikes = prev[postId] || posts.find(p => p.id === postId)?.likes || [];
-        if (res.liked) {
-          // Add a dummy like (should use userId from auth)
-          return { ...prev, [postId]: [...prevLikes, { user_id: 'me' }] };
-        } else {
-          return { ...prev, [postId]: prevLikes.filter(like => like.user_id !== 'me') };
-        }
-      });
+      await likePost(postId);
+      await fetchAndSetPost(postId);
     } catch (err) {
       alert('Failed to like post');
     }
@@ -87,11 +88,8 @@ const Home = () => {
   const handleAddComment = async (postId) => {
     if (!commentInput.trim()) return;
     try {
-      const res = await addComment(postId, commentInput);
-      setCommentsState(prev => {
-        const prevComments = prev[postId] || posts.find(p => p.id === postId)?.comments || [];
-        return { ...prev, [postId]: [...prevComments, res.comment] };
-      });
+      await addComment(postId, commentInput);
+      await fetchAndSetPost(postId);
       setCommentInput('');
       setShowCommentInputId(null);
     } catch (err) {
