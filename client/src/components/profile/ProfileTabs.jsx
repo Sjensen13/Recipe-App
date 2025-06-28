@@ -114,7 +114,19 @@ const ProfileTabs = ({
               <div key={post.id} className="bg-white rounded-lg shadow p-4">
                 <div className="p-4">
                   <h2 className="text-xl font-semibold mb-2">{post.title}</h2>
-                  <p className="text-gray-700 mb-2">{post.content}</p>
+                  {/* Post Image */}
+                  {post.image_url && (
+                    <img
+                      src={post.image_url}
+                      alt={post.title}
+                      className="w-full h-72 object-cover rounded mb-2"
+                    />
+                  )}
+                  {/* Post Content (remove hashtags from text) */}
+                  <p className="text-gray-700 mb-2">
+                    {post.content.replace(/#[\w]+/g, '').replace(/\s{2,}/g, ' ').trim()}
+                  </p>
+                  {/* Hashtags as buttons */}
                   {post.hashtags && post.hashtags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-2">
                       {post.hashtags.map((tag, idx) => (
