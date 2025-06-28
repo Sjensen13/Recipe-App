@@ -94,6 +94,105 @@ const createMockTable = (tableName) => ({
       limit: (count) => {
         const data = mockData[tableName].slice(0, count);
         return Promise.resolve({ data, error: null });
+      },
+      contains: (column, value) => {
+        // Filter data based on array containment
+        let filteredData = mockData[tableName];
+        
+        if (column === 'hashtags' && Array.isArray(value)) {
+          const hashtagToFind = value[0]; // Get the hashtag from the array
+          filteredData = mockData[tableName].filter(item => 
+            item.hashtags && Array.isArray(item.hashtags) && item.hashtags.includes(hashtagToFind)
+          );
+        }
+        
+        return {
+          order: (column, options = {}) => {
+            const { ascending = true } = options;
+            return {
+              range: (start, end) => {
+                let data = [...filteredData];
+                
+                // Sort the data
+                data.sort((a, b) => {
+                  const aVal = a[column];
+                  const bVal = b[column];
+                  
+                  if (ascending) {
+                    return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                  } else {
+                    return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+                  }
+                });
+                
+                // Apply range
+                data = data.slice(start, end + 1);
+                
+                // Handle complex selects with joins
+                const isComplexSelect = true; // Assume complex select for posts
+                if (isComplexSelect && tableName === 'posts') {
+                  data = data.map(post => {
+                    const result = { ...post };
+                    
+                    // Add user data
+                    const user = mockData.users.find(u => u.id === post.user_id);
+                    result.users = user || null;
+                    
+                    // Add likes
+                    result.likes = mockData.likes.filter(like => like.post_id === post.id) || [];
+                    
+                    // Add comments with user data
+                    const comments = mockData.comments.filter(comment => comment.post_id === post.id) || [];
+                    result.comments = comments.map(comment => ({
+                      ...comment,
+                      users: mockData.users.find(u => u.id === comment.user_id) || null
+                    }));
+                    
+                    return result;
+                  });
+                }
+                
+                return Promise.resolve({ 
+                  data, 
+                  error: null,
+                  count: filteredData.length
+                });
+              }
+            };
+          },
+          range: (start, end) => {
+            let data = filteredData.slice(start, end + 1);
+            
+            // Handle complex selects with joins for posts
+            if (tableName === 'posts') {
+              data = data.map(post => {
+                const result = { ...post };
+                
+                // Add user data
+                const user = mockData.users.find(u => u.id === post.user_id);
+                result.users = user || null;
+                
+                // Add likes
+                result.likes = mockData.likes.filter(like => like.post_id === post.id) || [];
+                
+                // Add comments with user data
+                const comments = mockData.comments.filter(comment => comment.post_id === post.id) || [];
+                result.comments = comments.map(comment => ({
+                  ...comment,
+                  users: mockData.users.find(u => u.id === comment.user_id) || null
+                }));
+                
+                return result;
+              });
+            }
+            
+            return Promise.resolve({ 
+              data, 
+              error: null,
+              count: filteredData.length
+            });
+          }
+        };
       }
     };
   },

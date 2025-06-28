@@ -19,7 +19,52 @@
       "updated_at": "2025-06-25T02:51:12.830Z"
     }
   ],
-  "posts": [],
+  "posts": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "title": "My First Recipe Post",
+      "content": "This is my first recipe post with #hello and #recipe hashtags!",
+      "image_url": null,
+      "recipe_data": null,
+      "hashtags": ["hello", "recipe"],
+      "created_at": "2025-01-20T10:00:00.000Z",
+      "updated_at": "2025-01-20T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "title": "Another Post",
+      "content": "This post has #hello hashtag but not #recipe",
+      "image_url": null,
+      "recipe_data": null,
+      "hashtags": ["hello"],
+      "created_at": "2025-01-20T11:00:00.000Z",
+      "updated_at": "2025-01-20T11:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "user_id": 1,
+      "title": "Recipe Post",
+      "content": "This post only has #recipe hashtag",
+      "image_url": null,
+      "recipe_data": null,
+      "hashtags": ["recipe"],
+      "created_at": "2025-01-20T12:00:00.000Z",
+      "updated_at": "2025-01-20T12:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "user_id": 2,
+      "title": "No Hashtags Post",
+      "content": "This post has no hashtags at all",
+      "image_url": null,
+      "recipe_data": null,
+      "hashtags": [],
+      "created_at": "2025-01-20T13:00:00.000Z",
+      "updated_at": "2025-01-20T13:00:00.000Z"
+    }
+  ],
   "comments": [],
   "likes": [],
   "messages": [],
