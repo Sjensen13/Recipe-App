@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getPosts, likePost, addComment, getPost } from '../../services/api/posts';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
 import { useAuth } from '../../context/auth/AuthContext';
 
 const Home = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,17 +21,25 @@ const Home = () => {
   const [commentsState, setCommentsState] = useState({});
   const { user } = useAuth();
 
-  // Fetch posts on component mount
+  // Get hashtag filter from URL params
+  const hashtagFilter = searchParams.get('hashtag');
+
+  // Fetch posts on component mount and when hashtag filter changes
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [hashtagFilter]);
 
   const fetchPosts = async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await getPosts({ page, limit: pagination.limit });
+      const params = { page, limit: pagination.limit };
+      if (hashtagFilter) {
+        params.hashtag = hashtagFilter;
+      }
+      
+      const response = await getPosts(params);
       
       if (response.success) {
         setPosts(response.data);
@@ -67,6 +76,16 @@ const Home = () => {
     setPosts(prevPosts => prevPosts.map(p => p.id === postId ? { ...p, ...response.data } : p));
     setLikesState(prev => ({ ...prev, [postId]: response.data.likes || [] }));
     setCommentsState(prev => ({ ...prev, [postId]: response.data.comments || [] }));
+  };
+
+  // Handler for hashtag clicks
+  const handleHashtagClick = (hashtag) => {
+    setSearchParams({ hashtag });
+  };
+
+  // Handler to clear hashtag filter
+  const clearHashtagFilter = () => {
+    setSearchParams({});
   };
 
   // Handler stubs for profile, like, and comment
@@ -125,24 +144,25 @@ const Home = () => {
         marginBottom: '2rem' 
       }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>
-          Your Feed
+          {hashtagFilter ? `Posts tagged #${hashtagFilter}` : 'Your Feed'}
         </h1>
-        <Link 
-          to="/app/create-post"
-          style={{
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontWeight: '500',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
-        >
-          Create Post
-        </Link>
+        {hashtagFilter && (
+          <button
+            onClick={clearHashtagFilter}
+            style={{
+              backgroundColor: '#f3f4f6',
+              color: '#374151',
+              padding: '0.5rem 1rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500'
+            }}
+          >
+            Clear Filter
+          </button>
+        )}
       </div>
       
       {posts.length === 0 ? (
@@ -155,10 +175,13 @@ const Home = () => {
         }}>
           <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🍽️</div>
           <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>
-            No posts yet
+            {hashtagFilter ? `No posts with #${hashtagFilter}` : 'No posts yet'}
           </h3>
           <p style={{ color: '#6b7280', marginBottom: '2rem' }}>
-            Be the first to share a delicious recipe or food story!
+            {hashtagFilter 
+              ? `Be the first to share a post with #${hashtagFilter}!`
+              : 'Be the first to share a delicious recipe or food story!'
+            }
           </p>
           <Link 
             to="/app/create-post"
@@ -247,7 +270,7 @@ const Home = () => {
                   marginBottom: '1rem',
                   whiteSpace: 'pre-wrap'
                 }}>
-                  {post.content}
+                  {post.content.replace(/#[\w]+/g, '').replace(/\s{2,}/g, ' ').trim()}
                 </p>
 
                 {/* Hashtags */}
@@ -259,19 +282,25 @@ const Home = () => {
                     marginBottom: '1rem' 
                   }}>
                     {post.hashtags.map((tag, index) => (
-                      <span 
+                      <button
                         key={index}
+                        onClick={() => handleHashtagClick(tag)}
                         style={{
                           backgroundColor: '#f3f4f6',
                           color: '#374151',
                           padding: '0.25rem 0.75rem',
                           borderRadius: '20px',
                           fontSize: '0.875rem',
-                          fontWeight: '500'
+                          fontWeight: '500',
+                          border: 'none',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s'
                         }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
                       >
                         #{tag}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 )}
