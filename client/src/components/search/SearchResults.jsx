@@ -13,8 +13,6 @@ const SearchResults = ({
   searchQuery,
   onLoadMore 
 }) => {
-  // Debug log
-  console.log('SearchResults:', { results, activeTab, loading, error, searchQuery });
 
   if (loading) {
     return (
@@ -102,7 +100,7 @@ const SearchResults = ({
           {users.map((user) => (
             <Link 
               key={user.id} 
-              to={`/profile/${user.id}`}
+              to={`/app/profile/${user.id}`}
               className="bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow"
             >
               <div className="flex items-center space-x-3">

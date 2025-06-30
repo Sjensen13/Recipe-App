@@ -1,4 +1,4 @@
-const { supabase } = require('../../services/supabase/client');
+const { getSupabase } = require('../../services/database');
 
 async function authenticateToken(req, res, next) {
   try {
@@ -12,6 +12,9 @@ async function authenticateToken(req, res, next) {
       });
     }
 
+    // Get the Supabase client from the database service
+    const supabase = getSupabase();
+    
     // Verify token with Supabase
     const { data: { user }, error } = await supabase.auth.getUser(token);
     

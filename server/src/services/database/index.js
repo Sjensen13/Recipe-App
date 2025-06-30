@@ -16,7 +16,9 @@ let mockData = {
   likes: [],
   messages: [],
   recipes: [],
-  hashtags: []
+  hashtags: [],
+  conversations: [],
+  conversation_participants: []
 };
 
 // Load mock data from file
@@ -85,12 +87,111 @@ const createMockTable = (tableName) => ({
               }
             }
             
+            // Handle conversations with participants and messages
+            if (tableName === 'conversations' && columns.includes('participants')) {
+              const participants = mockData.conversation_participants.filter(p => p.conversation_id === data.id);
+              result.participants = participants.map(p => ({
+                ...p,
+                users: mockData.users.find(u => u.id === p.user_id) || null
+              }));
+            }
+            
+            if (tableName === 'conversations' && columns.includes('last_message')) {
+              const messages = mockData.messages.filter(m => m.conversation_id === data.id);
+              const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+              if (lastMessage) {
+                result.last_message = [{
+                  ...lastMessage,
+                  users: mockData.users.find(u => u.id === lastMessage.sender_id) || null
+                }];
+              } else {
+                result.last_message = [];
+              }
+            }
+            
+            // Handle messages with sender
+            if (tableName === 'messages' && columns.includes('sender')) {
+              result.sender = mockData.users.find(u => u.id === data.sender_id) || null;
+            }
+            
             return Promise.resolve({ data: result, error: null });
           }
           
           return Promise.resolve({ data, error: null });
         }
       }),
+      or: (condition) => {
+        // Handle OR conditions for conversations
+        if (tableName === 'conversations' && condition.includes('participants.user_id.eq.')) {
+          // Updated regex to handle UUID strings
+          const userId = condition.match(/participants\.user_id\.eq\.([^)]+)/)?.[1];
+          if (userId) {
+            const participantConversations = mockData.conversation_participants
+              .filter(p => p.user_id === userId)
+              .map(p => p.conversation_id);
+            
+            const conversations = mockData.conversations.filter(c => 
+              participantConversations.includes(c.id)
+            );
+            
+            // Return an object that supports order method
+            return {
+              order: (column, options = {}) => {
+                const { ascending = true } = options;
+                let sortedData = [...conversations];
+                
+                // Sort the data
+                sortedData.sort((a, b) => {
+                  const aVal = a[column];
+                  const bVal = b[column];
+                  
+                  if (ascending) {
+                    return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                  } else {
+                    return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+                  }
+                });
+                
+                // Handle complex selects with joins for conversations
+                if (isComplexSelect && tableName === 'conversations') {
+                  sortedData = sortedData.map(conv => {
+                    const result = { ...conv };
+                    
+                    // Add participants with user data
+                    if (columns.includes('participants')) {
+                      const participants = mockData.conversation_participants.filter(p => p.conversation_id === conv.id);
+                      result.participants = participants.map(p => ({
+                        ...p,
+                        users: mockData.users.find(u => u.id === p.user_id) || null
+                      }));
+                    }
+                    
+                    // Add last message with sender data
+                    if (columns.includes('last_message')) {
+                      const messages = mockData.messages.filter(m => m.conversation_id === conv.id);
+                      const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+                      if (lastMessage) {
+                        result.last_message = [{
+                          ...lastMessage,
+                          users: mockData.users.find(u => u.id === lastMessage.sender_id) || null
+                        }];
+                      } else {
+                        result.last_message = [];
+                      }
+                    }
+                    
+                    return result;
+                  });
+                }
+                
+                return Promise.resolve({ data: sortedData, error: null });
+              }
+            };
+          }
+        }
+        
+        return Promise.resolve({ data: [], error: null });
+      },
       limit: (count) => {
         const data = mockData[tableName].slice(0, count);
         return Promise.resolve({ data, error: null });
@@ -200,7 +301,7 @@ const createMockTable = (tableName) => ({
     const { ascending = true } = options;
     return {
       range: (start, end) => {
-        let data = [...mockData[tableName]];
+        let data = [...mockData[column]];
         
         // Sort the data
         data.sort((a, b) => {
@@ -219,7 +320,7 @@ const createMockTable = (tableName) => ({
         
         // Handle complex selects with joins
         const isComplexSelect = true; // Assume complex select for posts
-        if (isComplexSelect && tableName === 'posts') {
+        if (isComplexSelect && column === 'posts') {
           data = data.map(post => {
             const result = { ...post };
             
@@ -244,16 +345,16 @@ const createMockTable = (tableName) => ({
         return Promise.resolve({ 
           data, 
           error: null,
-          count: mockData[tableName].length
+          count: mockData[column].length
         });
       }
     };
   },
   range: (start, end) => {
-    let data = mockData[tableName].slice(start, end + 1);
+    let data = mockData[column].slice(start, end + 1);
     
     // Handle complex selects with joins for posts
-    if (tableName === 'posts') {
+    if (column === 'posts') {
       data = data.map(post => {
         const result = { ...post };
         
@@ -278,31 +379,42 @@ const createMockTable = (tableName) => ({
     return Promise.resolve({ 
       data, 
       error: null,
-      count: mockData[tableName].length
+      count: mockData[column].length
     });
   },
   insert: (data) => ({
-    select: () => ({
+    select: (columns = '*') => ({
       single: async () => {
         const newItems = Array.isArray(data) ? data : [data];
         newItems.forEach(item => {
-          if (tableName === 'posts') {
-            item.id = mockData[tableName].length + 1;
+          // Generate ID for new items
+          item.id = mockData[column].length + 1;
+          
+          // Add timestamps
+          if (column === 'posts' || column === 'conversations' || column === 'messages') {
             item.created_at = new Date().toISOString();
             item.updated_at = new Date().toISOString();
           }
-          mockData[tableName].push(item);
+          
+          mockData[column].push(item);
         });
         await saveMockData(); // Persist data
         
-        // For posts, return with user data
-        if (tableName === 'posts' && newItems.length === 1) {
-          const post = newItems[0];
-          const result = { ...post };
+        // Handle complex selects for different tables
+        if (newItems.length === 1) {
+          const item = newItems[0];
+          const result = { ...item };
           
-          // Add user data
-          const user = mockData.users.find(u => u.id === post.user_id);
-          result.users = user || null;
+          // Add user data for posts
+          if (column === 'posts') {
+            const user = mockData.users.find(u => u.id === item.user_id);
+            result.users = user || null;
+          }
+          
+          // Add sender data for messages
+          if (column === 'messages' && columns.includes('sender')) {
+            result.sender = mockData.users.find(u => u.id === item.sender_id) || null;
+          }
           
           return Promise.resolve({ data: result, error: null });
         }
@@ -317,18 +429,18 @@ const createMockTable = (tableName) => ({
   update: (updateData) => ({
     eq: (column, value) => ({
       select: async () => {
-        const index = mockData[tableName].findIndex(item => item[column] === value);
+        const index = mockData[column].findIndex(item => item[column] === value);
         if (index !== -1) {
-          mockData[tableName][index] = {
-            ...mockData[tableName][index],
+          mockData[column][index] = {
+            ...mockData[column][index],
             ...updateData,
             updated_at: new Date().toISOString()
           };
           await saveMockData(); // Persist data
           
           // For posts, return with user data
-          if (tableName === 'posts') {
-            const post = mockData[tableName][index];
+          if (column === 'posts') {
+            const post = mockData[column][index];
             const result = { ...post };
             
             // Add user data
@@ -339,69 +451,120 @@ const createMockTable = (tableName) => ({
           }
           
           return Promise.resolve({ 
-            data: mockData[tableName][index], 
+            data: mockData[column][index], 
             error: null 
           });
         }
         return Promise.resolve({ data: null, error: { code: 'PGRST116' } });
       }
+    }),
+    is: (column, value) => ({
+      select: async () => {
+        // Handle IS NULL queries
+        if (value === null) {
+          const items = mockData[column].filter(item => item[column] === null || item[column] === undefined);
+          items.forEach(item => {
+            const index = mockData[column].findIndex(i => i.id === item.id);
+            if (index !== -1) {
+              mockData[column][index] = {
+                ...mockData[column][index],
+                ...updateData,
+                updated_at: new Date().toISOString()
+              };
+            }
+          });
+          await saveMockData();
+          return Promise.resolve({ data: null, error: null });
+        }
+        return Promise.resolve({ data: null, error: null });
+      }
     })
   }),
   delete: () => ({
     eq: async (column, value) => {
-      const index = mockData[tableName].findIndex(item => item[column] === value);
+      const index = mockData[column].findIndex(item => item[column] === value);
       if (index !== -1) {
-        mockData[tableName].splice(index, 1);
+        mockData[column].splice(index, 1);
         await saveMockData(); // Persist data
       }
       return Promise.resolve({ data: null, error: null });
+    },
+    or: (condition) => {
+      // Handle OR conditions for conversations
+      if (column === 'conversations' && condition.includes('participants.user_id.eq.')) {
+        const userId = condition.match(/participants\.user_id\.eq\.(\d+)/)?.[1];
+        if (userId) {
+          const participantConversations = mockData.conversation_participants
+            .filter(p => p.user_id === parseInt(userId))
+            .map(p => p.conversation_id);
+          
+          const conversations = mockData.conversations.filter(c => 
+            participantConversations.includes(c.id)
+          );
+          
+          return Promise.resolve({ data: conversations, error: null });
+        }
+      }
+      
+      return Promise.resolve({ data: [], error: null });
     }
   })
 });
 
 const connectDatabase = async () => {
   try {
-    // Check if we're in development mode and Supabase is not configured
-    if (process.env.NODE_ENV === 'development' && (!supabaseUrl || !supabaseKey || supabaseUrl === 'your_supabase_project_url')) {
-      console.log('⚠️  Running in development mode without Supabase - using persistent mock database');
-      console.log('📝 To use real database, update SUPABASE_URL and SUPABASE_SERVICE_KEY in .env file');
+    // Check if we have valid Supabase credentials
+    if (supabaseUrl && supabaseKey && supabaseUrl !== 'your_supabase_project_url' && supabaseUrl.startsWith('https://')) {
+      console.log('🔗 Connecting to real Supabase database...');
       
-      // Load existing mock data
-      await loadMockData();
+      supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Test the connection
+      const { data, error } = await supabase
+        .from('users')
+        .select('count')
+        .limit(1);
       
-      // Create a mock supabase client for development
-      supabase = {
-        from: (tableName) => createMockTable(tableName),
-        auth: {
-          signUp: () => Promise.resolve({ data: null, error: null }),
-          signInWithPassword: () => Promise.resolve({ data: null, error: null }),
-          signOut: () => Promise.resolve({ error: null })
-        }
-      };
+      if (error) {
+        console.error('Database connection test failed:', error);
+        throw error;
+      }
       
-      console.log('✅ Persistent mock database connected successfully');
+      console.log('✅ Real Supabase database connected successfully');
       return supabase;
     }
 
-    // Real Supabase connection
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase environment variables');
-    }
-
-    supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Test the connection
-    const { data, error } = await supabase
-      .from('users')
-      .select('count')
-      .limit(1);
+    // Fallback to mock database if no valid credentials
+    console.log('⚠️  Running in development mode without valid Supabase credentials - using persistent mock database');
+    console.log('📝 To use real database, update SUPABASE_URL and SUPABASE_SERVICE_KEY in .env file');
     
-    if (error) {
-      console.error('Database connection test failed:', error);
-      throw error;
-    }
+    // Load existing mock data
+    await loadMockData();
     
-    console.log('✅ Database connected successfully');
+    // Create a mock supabase client for development
+    supabase = {
+      from: (tableName) => createMockTable(tableName),
+      auth: {
+        signUp: () => Promise.resolve({ data: null, error: null }),
+        signInWithPassword: () => Promise.resolve({ data: null, error: null }),
+        signOut: () => Promise.resolve({ error: null }),
+        getUser: (token) => {
+          // Mock authentication for development
+          return Promise.resolve({ 
+            data: { 
+              user: { 
+                id: '74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f',
+                email: 'test@example.com',
+                user_metadata: {}
+              } 
+            }, 
+            error: null 
+          });
+        }
+      }
+    };
+    
+    console.log('✅ Persistent mock database connected successfully');
     return supabase;
   } catch (error) {
     console.error('❌ Database connection failed:', error);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SearchBar from '../../components/search/SearchBar';
 import FilterTabs from '../../components/search/FilterTabs';
@@ -22,22 +22,8 @@ const Explore = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // Debounced search function
-  const debouncedSearch = useCallback(
-    (() => {
-      let timeoutId;
-      return (query, type) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          performSearch(query, type);
-        }, 300);
-      };
-    })(),
-    []
-  );
-
-  // Perform search based on type
-  const performSearch = async (query, type = activeTab) => {
+  // Memoize performSearch function
+  const performSearch = useCallback(async (query, type = activeTab) => {
     if (!query.trim()) {
       setResults(null);
       setError(null);
@@ -68,7 +54,7 @@ const Explore = () => {
           response = await searchPosts(query, { page: 1, limit: 10 });
       }
 
-      console.log('Search response:', response); // Debug log
+
 
       if (response.success) {
         // The API returns { success: true, data: [...], pagination: {...} }
@@ -86,10 +72,21 @@ const Explore = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, addNotification]);
 
-  // Load more results
-  const loadMore = async () => {
+  // Memoize debounced search function
+  const debouncedSearch = useMemo(() => {
+    let timeoutId;
+    return (query, type) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        performSearch(query, type);
+      }, 300);
+    };
+  }, [performSearch]);
+
+  // Memoize loadMore function
+  const loadMore = useCallback(async () => {
     if (!searchQuery.trim() || loading || !hasMore) return;
 
     setLoading(true);
@@ -131,7 +128,7 @@ const Explore = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, loading, hasMore, page, activeTab, addNotification]);
 
   // Handle search
   const handleSearch = (query) => {
@@ -185,7 +182,7 @@ const Explore = () => {
       setSearchQuery(query);
       performSearch(query, type);
     }
-  }, []);
+  }, [performSearch]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">

@@ -5,7 +5,7 @@
       "email": "new@example.com",
       "password": "$2a$12$Uu76dN0lBvyyhm0FEozpDuvcW/ShR9WyQbX4N3zI.0vpXJ6D5q3SG",
       "name": "New User",
-      "id": 1,
+      "id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f",
       "created_at": "2025-06-25T02:50:47.181Z",
       "updated_at": "2025-06-25T02:50:47.181Z"
     },
@@ -14,7 +14,7 @@
       "email": "mochansan22@gmail.com",
       "password": "$2a$12$jT22cOGt2JLNSzn4m011gewFTp9UfihZDuMMsT2f2OSptel/hmICW",
       "name": "Shuma",
-      "id": 2,
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "created_at": "2025-06-25T02:51:12.830Z",
       "updated_at": "2025-06-25T02:51:12.830Z"
     }
@@ -22,7 +22,7 @@
   "posts": [
     {
       "id": 1,
-      "user_id": 1,
+      "user_id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f",
       "title": "My First Recipe Post",
       "content": "This is my first recipe post with #hello and #recipe hashtags!",
       "image_url": null,
@@ -33,7 +33,7 @@
     },
     {
       "id": 2,
-      "user_id": 2,
+      "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "title": "Another Post",
       "content": "This post has #hello hashtag but not #recipe",
       "image_url": null,
@@ -44,7 +44,7 @@
     },
     {
       "id": 3,
-      "user_id": 1,
+      "user_id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f",
       "title": "Recipe Post",
       "content": "This post only has #recipe hashtag",
       "image_url": null,
@@ -55,7 +55,7 @@
     },
     {
       "id": 4,
-      "user_id": 2,
+      "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "title": "No Hashtags Post",
       "content": "This post has no hashtags at all",
       "image_url": null,
@@ -67,7 +67,58 @@
   ],
   "comments": [],
   "likes": [],
-  "messages": [],
+  "conversations": [
+    {
+      "id": 1,
+      "created_at": "2025-01-20T14:00:00.000Z",
+      "updated_at": "2025-01-20T15:30:00.000Z",
+      "unread_count": 2
+    }
+  ],
+  "conversation_participants": [
+    {
+      "conversation_id": 1,
+      "user_id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f"
+    },
+    {
+      "conversation_id": 1,
+      "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    }
+  ],
+  "messages": [
+    {
+      "id": 1,
+      "conversation_id": 1,
+      "sender_id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f",
+      "content": "Hey! I loved your recipe post!",
+      "created_at": "2025-01-20T14:00:00.000Z",
+      "read_at": "2025-01-20T14:05:00.000Z"
+    },
+    {
+      "id": 2,
+      "conversation_id": 1,
+      "sender_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "content": "Thank you! I'm glad you liked it. What's your favorite recipe?",
+      "created_at": "2025-01-20T14:10:00.000Z",
+      "read_at": "2025-01-20T14:15:00.000Z"
+    },
+    {
+      "id": 3,
+      "conversation_id": 1,
+      "sender_id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f",
+      "content": "I love making pasta dishes! Do you have any recommendations?",
+      "created_at": "2025-01-20T15:00:00.000Z",
+      "read_at": null
+    },
+    {
+      "id": 4,
+      "conversation_id": 1,
+      "sender_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "content": "Absolutely! I have a great carbonara recipe I can share with you.",
+      "created_at": "2025-01-20T15:30:00.000Z",
+      "read_at": null
+    }
+  ],
   "recipes": [],
   "hashtags": []
 }

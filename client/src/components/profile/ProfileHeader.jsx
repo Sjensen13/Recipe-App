@@ -1,6 +1,7 @@
 import React from 'react';
 import ProfileStats from './ProfileStats';
 import Avatar from '../ui/Avatar';
+import StartConversation from '../messaging/StartConversation';
 
 const ProfileHeader = ({ 
   userData, 
@@ -133,9 +134,10 @@ const ProfileHeader = ({
                   >
                     {followLoading ? 'Loading...' : (isFollowing ? 'Unfollow' : 'Follow')}
                   </button>
-                  <button className="btn-secondary">
-                    Message
-                  </button>
+                  <StartConversation
+                    targetUser={userData}
+                    className="btn-secondary"
+                  />
                 </div>
               )}
             </div>

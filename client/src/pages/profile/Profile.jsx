@@ -83,16 +83,19 @@ const Profile = () => {
         response = await userService.getUserById(userId);
       }
       
-      setProfile(response.data.user);
+      // Handle different response structures for own profile vs other user profile
+      const userData = response.data?.user || response.data;
+      setProfile(userData);
       setEditForm({
-        username: response.data.user.username || response.data.user.user_metadata?.username || '',
-        name: response.data.user.name || response.data.user.user_metadata?.name || '',
-        bio: response.data.user.bio || response.data.user.user_metadata?.bio || '',
-        avatar_url: response.data.user.avatar_url || response.data.user.user_metadata?.avatar_url || ''
+        username: userData.username || userData.user_metadata?.username || '',
+        name: userData.name || userData.user_metadata?.name || '',
+        bio: userData.bio || userData.user_metadata?.bio || '',
+        avatar_url: userData.avatar_url || userData.user_metadata?.avatar_url || ''
       });
     } catch (err) {
-      setError('Failed to load profile');
       console.error('Profile fetch error:', err);
+      console.error('Error response:', err.response?.data);
+      setError('Failed to load profile');
     } finally {
       setLoading(false);
     }
@@ -111,6 +114,8 @@ const Profile = () => {
       const response = await getUserPosts(id);
       setUserPosts(response.data || []);
     } catch (err) {
+      console.error('Posts fetch error:', err);
+      console.error('Posts error response:', err.response?.data);
       setPostsError('Failed to load posts');
       setUserPosts([]);
     } finally {
@@ -131,18 +136,19 @@ const Profile = () => {
       // Fetch follow status (only if not viewing own profile)
       if (!isOwnProfile) {
         const followResponse = await userService.checkIsFollowing(targetUserId);
-        setIsFollowing(followResponse.data.isFollowing);
+        setIsFollowing(followResponse.data?.isFollowing || false);
       }
 
       // Fetch followers count
       const followersResponse = await userService.getFollowersCount(targetUserId);
-      setFollowersCount(followersResponse.data.followersCount);
+      setFollowersCount(followersResponse.data?.followersCount || 0);
 
       // Fetch following count
       const followingResponse = await userService.getFollowingCount(targetUserId);
-      setFollowingCount(followingResponse.data.followingCount);
+      setFollowingCount(followingResponse.data?.followingCount || 0);
     } catch (err) {
       console.error('Failed to fetch follow data:', err);
+      console.error('Follow data error response:', err.response?.data);
       // Set defaults if fetch fails
       setIsFollowing(false);
       setFollowersCount(0);
