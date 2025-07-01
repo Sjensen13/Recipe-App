@@ -284,6 +284,7 @@ const Profile = () => {
   }
 
   const userData = {
+    id: profile.id,
     username: profile.username || profile.user_metadata?.username || 'No username',
     name: profile.name || profile.user_metadata?.name || 'No name',
     bio: profile.bio || profile.user_metadata?.bio || 'No bio yet',

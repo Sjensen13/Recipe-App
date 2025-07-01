@@ -7,6 +7,7 @@ const StartConversation = ({ targetUser, className = '' }) => {
   const navigate = useNavigate();
 
   const handleStartConversation = () => {
+    console.log('targetUser:', targetUser); // Debug log
     if (!user) {
       navigate('/login');
       return;

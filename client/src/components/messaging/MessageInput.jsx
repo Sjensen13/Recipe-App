@@ -53,8 +53,8 @@ const MessageInput = ({ conversationId, receiverId, onMessageSent }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-gray-200 p-4">
-      <div className="flex items-end space-x-3">
+    <form onSubmit={handleSubmit} className="border-t border-gray-200 p-4 mb-5">
+      <div className="flex items-center space-x-3">
         <div className="flex-1">
           <textarea
             ref={textareaRef}
@@ -62,10 +62,11 @@ const MessageInput = ({ conversationId, receiverId, onMessageSent }) => {
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full h-12 px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows="1"
             maxLength="1000"
             disabled={sending}
+            style={{ minHeight: '3rem', maxHeight: '6rem' }}
           />
         </div>
         
@@ -97,10 +98,6 @@ const MessageInput = ({ conversationId, receiverId, onMessageSent }) => {
             </div>
           )}
         </button>
-      </div>
-      
-      <div className="text-xs text-gray-500 mt-1 text-right">
-        {message.length}/1000
       </div>
     </form>
   );

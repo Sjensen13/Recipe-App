@@ -8,6 +8,7 @@ import { getUnreadCount, getConversations } from '../../services/api/messages';
 const Messages = () => {
   const { user } = useAuth();
   const location = useLocation();
+  console.log('location.state:', location.state); // Debug log
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showConversationList, setShowConversationList] = useState(true);
@@ -44,8 +45,28 @@ const Messages = () => {
         setSelectedConversation(conversation);
         setShowConversationList(false);
       } else {
-        // Optionally, you could create a new conversation here by sending a blank message or similar logic
-        setShowConversationList(true);
+        // Fetch user details for placeholder conversation
+        let otherUser = null;
+        try {
+          const response = await fetch(`/api/users/${targetUserId}`);
+          if (response.ok) {
+            otherUser = await response.json();
+          } else {
+            otherUser = { id: targetUserId, username: 'Unknown', name: 'Unknown User', avatar_url: '' };
+          }
+        } catch (e) {
+          otherUser = { id: targetUserId, username: 'Unknown', name: 'Unknown User', avatar_url: '' };
+        }
+        setSelectedConversation({
+          id: targetUserId,
+          other_user: otherUser,
+          last_message: null,
+          messages: [],
+          unread_count: 0,
+          updated_at: null,
+          created_at: null
+        });
+        setShowConversationList(false);
       }
     } catch (error) {
       console.error('Error selecting conversation:', error);
@@ -75,8 +96,8 @@ const Messages = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto h-screen">
-      <div className="flex h-full bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="w-full h-screen flex flex-row">
+      <div className="flex flex-row w-full h-full bg-white">
         {/* Conversation List - Hidden on mobile when viewing conversation */}
         <div className={`
           w-full lg:w-1/3 border-r border-gray-200 flex flex-col

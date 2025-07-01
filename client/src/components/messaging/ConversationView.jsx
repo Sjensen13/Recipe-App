@@ -14,13 +14,20 @@ const ConversationView = ({ conversation, onBack }) => {
 
   useEffect(() => {
     if (conversation?.id) {
-      fetchMessages();
-      markAsRead();
+      if (!conversation.last_message) {
+        // Placeholder conversation, no messages yet
+        setMessages([]);
+        setLoading(false);
+        setError(null);
+      } else {
+        fetchMessages();
+        markAsRead();
+      }
     }
   }, [conversation?.id]);
 
   useEffect(() => {
-    scrollToBottom();
+    // No auto-scroll to bottom; messages start at the top
   }, [messages]);
 
   const fetchMessages = async () => {
@@ -45,10 +52,6 @@ const ConversationView = ({ conversation, onBack }) => {
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const handleMessageSent = (newMessage) => {
     setMessages(prev => [...prev, newMessage]);
   };
@@ -70,7 +73,7 @@ const ConversationView = ({ conversation, onBack }) => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Conversation Header */}
       <div className="flex items-center p-4 border-b border-gray-200 bg-white">
         <button
@@ -89,18 +92,18 @@ const ConversationView = ({ conversation, onBack }) => {
             size="md"
           />
           <div className="ml-3">
-            <h3 className="font-medium text-gray-900">
-              {conversation.other_user?.name || conversation.other_user?.username}
-            </h3>
-            <p className="text-sm text-gray-500">
-              {conversation.other_user?.username}
-            </p>
+            {conversation.other_user?.username && (
+              <div className="font-bold text-gray-900">{conversation.other_user.username}</div>
+            )}
+            {conversation.other_user?.name && (
+              <div className="text-sm text-gray-500">{conversation.other_user.name}</div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto min-h-0 p-4 bg-gray-50">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <LoadingSpinner />
@@ -123,17 +126,18 @@ const ConversationView = ({ conversation, onBack }) => {
                 onDelete={handleMessageDelete}
               />
             ))}
-            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
-      {/* Message Input */}
-      <MessageInput
-        conversationId={conversation.id}
-        receiverId={conversation.other_user?.id}
-        onMessageSent={handleMessageSent}
-      />
+      {/* Message Input - always visible at the bottom */}
+      <div className="border-t bg-white p-1 mb-8">
+        <MessageInput
+          conversationId={conversation.id}
+          receiverId={conversation.other_user?.id}
+          onMessageSent={handleMessageSent}
+        />
+      </div>
     </div>
   );
 };

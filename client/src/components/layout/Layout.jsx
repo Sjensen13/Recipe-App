@@ -148,7 +148,7 @@ const Layout = () => {
       {/* Main Content */}
       <main style={{ 
         flex: 1, 
-        padding: '2rem 1rem', 
+        padding: '1rem 1rem', 
         marginBottom: '64px' 
       }}>
         <Outlet />
