@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import ErrorState from '../ui/ErrorState';
 import { likePost, addComment, getPost } from '../../services/api/posts';
 import { useAuth } from '../../context/auth/AuthContext';
+import PostCard from '../post/PostCard';
 
 const ProfileTabs = ({ 
   activeTab, 
@@ -12,7 +13,10 @@ const ProfileTabs = ({
   userPosts,
   postsLoading,
   postsError,
-  fetchUserPosts
+  fetchUserPosts,
+  likedPosts,
+  likedPostsLoading,
+  likedPostsError
 }) => {
   const tabs = [
     { id: 'posts', label: 'Posts', icon: '📝' },
@@ -68,6 +72,20 @@ const ProfileTabs = ({
   const handleHashtagClick = (hashtag) => {
     onNavigate(`/app/home?hashtag=${hashtag}`);
   };
+
+  useEffect(() => {
+    if (activeTab === 'likes' && likedPosts && likedPosts.length > 0) {
+      // Initialize likes and comments state for liked posts
+      const newLikesState = {};
+      const newCommentsState = {};
+      likedPosts.forEach(post => {
+        newLikesState[post.id] = post.likes || [];
+        newCommentsState[post.id] = post.comments || [];
+      });
+      setLikesState(newLikesState);
+      setCommentsState(newCommentsState);
+    }
+  }, [activeTab, likedPosts]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -166,12 +184,6 @@ const ProfileTabs = ({
                       <button onClick={() => setShowCommentInputId(null)}>Cancel</button>
                     </div>
                   )}
-                  <button
-                    className="text-blue-600 hover:underline mt-2 block"
-                    onClick={() => onNavigate(`/app/post/${post.id}`)}
-                  >
-                    View Post →
-                  </button>
                 </div>
               </div>
             ))}
@@ -199,24 +211,59 @@ const ProfileTabs = ({
           </div>
         );
       case 'likes':
+        if (likedPostsLoading) {
+          return <LoadingSpinner />;
+        }
+        if (likedPostsError) {
+          return (
+            <ErrorState 
+              message={likedPostsError}
+              onRetry={null}
+            />
+          );
+        }
+        if (!likedPosts || likedPosts.length === 0) {
+          return (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">❤️</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No liked posts yet</h3>
+              <p className="text-gray-600 mb-4">
+                {isOwnProfile 
+                  ? "Start liking posts to see them here!"
+                  : "This user hasn't liked any posts yet."
+                }
+              </p>
+              {isOwnProfile && (
+                <button 
+                  onClick={() => onNavigate('/app/home')}
+                  className="btn-primary"
+                >
+                  Explore Posts
+                </button>
+              )}
+            </div>
+          );
+        }
         return (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">❤️</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No liked posts yet</h3>
-            <p className="text-gray-600 mb-4">
-              {isOwnProfile 
-                ? "Start liking posts to see them here!"
-                : "This user hasn't liked any posts yet."
-              }
-            </p>
-            {isOwnProfile && (
-              <button 
-                onClick={() => onNavigate('/app/home')}
-                className="btn-primary"
-              >
-                Explore Posts
-              </button>
-            )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {likedPosts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                formatDate={date => new Date(date).toLocaleDateString()}
+                onProfileClick={userId => onNavigate(`/app/profile/${userId}`)}
+                onHashtagClick={handleHashtagClick}
+                onLike={() => handleLike(post.id)}
+                onComment={() => handleComment(post.id)}
+                onAddComment={() => handleAddComment(post.id)}
+                showCommentInputId={showCommentInputId}
+                commentInput={commentInput}
+                setCommentInput={setCommentInput}
+                setShowCommentInputId={setShowCommentInputId}
+                likesState={likesState}
+                commentsState={commentsState}
+              />
+            ))}
           </div>
         );
       case 'saved':

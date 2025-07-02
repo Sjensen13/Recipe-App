@@ -8,7 +8,8 @@ const {
   getFollowing, 
   getFollowersList,
   getFollowingList,
-  checkIsFollowing 
+  checkIsFollowing,
+  getLikedPosts
 } = require('../controllers/users');
 const { authenticateToken } = require('../middleware/auth');
 
@@ -23,5 +24,8 @@ router.get('/:userId/following', getFollowing);
 router.get('/:userId/followers/list', getFollowersList);
 router.get('/:userId/following/list', getFollowingList);
 router.get('/:userId/is-following', authenticateToken, checkIsFollowing);
+
+// Add liked posts route
+router.get('/:userId/liked-posts', getLikedPosts);
 
 module.exports = router;

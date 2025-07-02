@@ -475,6 +475,72 @@ const checkIsFollowing = async (req, res) => {
   }
 };
 
+// Fetch posts liked by a user
+const getLikedPosts = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    // Get all likes for this user
+    const { data: likes, error: likesError } = await supabase
+      .from('likes')
+      .select('post_id')
+      .eq('user_id', userId);
+
+    if (likesError) {
+      console.error('Likes fetch error:', likesError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch liked posts'
+      });
+    }
+
+    if (!likes || likes.length === 0) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
+    const postIds = likes.map(like => like.post_id);
+
+    // Fetch posts with these IDs, including likes and comments
+    const { data: posts, error: postsError } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        users!posts_user_id_fkey(id, username, name, avatar_url),
+        likes (id, user_id),
+        comments (id, content, created_at, users!comments_user_id_fkey (username, name))
+      `)
+      .in('id', postIds);
+
+    if (postsError) {
+      console.error('Posts fetch error:', postsError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch liked posts'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: posts || []
+    });
+  } catch (error) {
+    console.error('Get liked posts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   getUserById,
   followUser,
@@ -483,5 +549,6 @@ module.exports = {
   getFollowing,
   getFollowersList,
   getFollowingList,
-  checkIsFollowing
+  checkIsFollowing,
+  getLikedPosts
 }; 

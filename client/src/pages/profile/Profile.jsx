@@ -9,7 +9,7 @@ import FollowersList from '../../components/profile/FollowersList';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
 import Toast from '../../components/ui/Toast';
-import { getUserPosts } from '../../services/api/posts';
+import { getUserPosts, getLikedPosts } from '../../services/api/posts';
 
 const Profile = () => {
   const { userId } = useParams();
@@ -38,6 +38,9 @@ const Profile = () => {
   const [followingCount, setFollowingCount] = useState(0);
   const [showFollowersList, setShowFollowersList] = useState(false);
   const [showFollowingList, setShowFollowingList] = useState(false);
+  const [likedPosts, setLikedPosts] = useState([]);
+  const [likedPostsLoading, setLikedPostsLoading] = useState(true);
+  const [likedPostsError, setLikedPostsError] = useState(null);
 
   // Check if viewing own profile - computed value that updates when currentUser changes
   const isOwnProfile = !userId || userId === 'me' || (currentUser && currentUser.id === userId);
@@ -45,6 +48,7 @@ const Profile = () => {
   useEffect(() => {
     fetchProfile();
     fetchUserPosts();
+    fetchUserLikedPosts();
     if (userId && currentUser) {
       fetchFollowData();
     }
@@ -120,6 +124,27 @@ const Profile = () => {
       setUserPosts([]);
     } finally {
       setPostsLoading(false);
+    }
+  };
+
+  const fetchUserLikedPosts = async () => {
+    try {
+      setLikedPostsLoading(true);
+      setLikedPostsError(null);
+      const id = userId && userId !== 'me' ? userId : currentUser?.id;
+      if (!id) {
+        setLikedPosts([]);
+        setLikedPostsLoading(false);
+        return;
+      }
+      const response = await getLikedPosts(id);
+      setLikedPosts(response.data || []);
+    } catch (err) {
+      console.error('Liked posts fetch error:', err);
+      setLikedPostsError('Failed to load liked posts');
+      setLikedPosts([]);
+    } finally {
+      setLikedPostsLoading(false);
     }
   };
 
@@ -328,6 +353,9 @@ const Profile = () => {
           userPosts={userPosts}
           postsLoading={postsLoading}
           postsError={postsError}
+          likedPosts={likedPosts}
+          likedPostsLoading={likedPostsLoading}
+          likedPostsError={likedPostsError}
         />
       </div>
 

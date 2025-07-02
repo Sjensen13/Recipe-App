@@ -117,4 +117,18 @@ export const addComment = async (postId, content) => {
     console.error('Error adding comment:', error);
     throw error;
   }
+};
+
+/**
+ * Get posts liked by a user
+ * @param {string} userId - User ID
+ */
+export const getLikedPosts = async (userId) => {
+  try {
+    const response = await apiClient.get(`/users/${userId}/liked-posts`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching liked posts:', error);
+    throw error;
+  }
 }; 
