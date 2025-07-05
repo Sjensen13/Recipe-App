@@ -271,6 +271,31 @@
       "created_at": "2025-07-05T19:27:36.394Z",
       "id": 5,
       "updated_at": "2025-07-05T19:27:36.394Z"
+    },
+    {
+      "user_id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f",
+      "title": "garlic green beans",
+      "description": "",
+      "ingredients": [
+        "green beans",
+        "galic",
+        "olive oil"
+      ],
+      "instructions": [
+        "Boil the beans for 4 minutes until they become bright green and are barely tender. Drain and then toss the beans in a skillet with the garlic."
+      ],
+      "cooking_time": "5",
+      "difficulty": "easy",
+      "servings": 1,
+      "category": "appetizer",
+      "tags": [
+        "galic",
+        "green beans"
+      ],
+      "image_url": "https://res.cloudinary.com/dqbg4ybgc/image/upload/v1751744130/d3sqehvatwz7azcpnl6j.jpg",
+      "created_at": "2025-07-05T19:35:30.886Z",
+      "id": 6,
+      "updated_at": "2025-07-05T19:35:30.886Z"
     }
   ],
   "hashtags": []
