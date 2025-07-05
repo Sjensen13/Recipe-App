@@ -571,15 +571,15 @@ const createMockTable = (tableName) => ({
         const newItems = Array.isArray(data) ? data : [data];
         newItems.forEach(item => {
           // Generate ID for new items
-          item.id = mockData[column].length + 1;
+          item.id = mockData[tableName].length + 1;
           
           // Add timestamps
-          if (column === 'posts' || column === 'conversations' || column === 'messages') {
+          if (tableName === 'posts' || tableName === 'conversations' || tableName === 'messages' || tableName === 'recipes') {
             item.created_at = new Date().toISOString();
             item.updated_at = new Date().toISOString();
           }
           
-          mockData[column].push(item);
+          mockData[tableName].push(item);
         });
         await saveMockData(); // Persist data
         
@@ -589,13 +589,19 @@ const createMockTable = (tableName) => ({
           const result = { ...item };
           
           // Add user data for posts
-          if (column === 'posts') {
+          if (tableName === 'posts') {
             const user = mockData.users.find(u => u.id === item.user_id);
             result.users = user || null;
           }
           
+          // Add user data for recipes
+          if (tableName === 'recipes' && columns.includes('user')) {
+            const user = mockData.users.find(u => u.id === item.user_id);
+            result.user = user || null;
+          }
+          
           // Add sender data for messages
-          if (column === 'messages' && columns.includes('sender')) {
+          if (tableName === 'messages' && columns.includes('sender')) {
             result.sender = mockData.users.find(u => u.id === item.sender_id) || null;
           }
           
@@ -739,6 +745,38 @@ const connectDatabase = async () => {
                 id: '74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f',
                 email: 'test@example.com',
                 user_metadata: {}
+              } 
+            }, 
+            error: null 
+          });
+        },
+        getSession: () => {
+          // Mock session for development
+          return Promise.resolve({ 
+            data: { 
+              session: { 
+                access_token: 'mock-token',
+                user: { 
+                  id: '74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f',
+                  email: 'test@example.com',
+                  user_metadata: {}
+                }
+              } 
+            }, 
+            error: null 
+          });
+        },
+        refreshSession: () => {
+          // Mock session refresh for development
+          return Promise.resolve({ 
+            data: { 
+              session: { 
+                access_token: 'mock-refreshed-token',
+                user: { 
+                  id: '74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f',
+                  email: 'test@example.com',
+                  user_metadata: {}
+                }
               } 
             }, 
             error: null 

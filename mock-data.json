@@ -27,7 +27,10 @@
       "content": "This is my first recipe post with #hello and #recipe hashtags!",
       "image_url": null,
       "recipe_data": null,
-      "hashtags": ["hello", "recipe"],
+      "hashtags": [
+        "hello",
+        "recipe"
+      ],
       "created_at": "2025-01-20T10:00:00.000Z",
       "updated_at": "2025-01-20T10:00:00.000Z"
     },
@@ -38,7 +41,9 @@
       "content": "This post has #hello hashtag but not #recipe",
       "image_url": null,
       "recipe_data": null,
-      "hashtags": ["hello"],
+      "hashtags": [
+        "hello"
+      ],
       "created_at": "2025-01-20T11:00:00.000Z",
       "updated_at": "2025-01-20T11:00:00.000Z"
     },
@@ -49,7 +54,9 @@
       "content": "This post only has #recipe hashtag",
       "image_url": null,
       "recipe_data": null,
-      "hashtags": ["recipe"],
+      "hashtags": [
+        "recipe"
+      ],
       "created_at": "2025-01-20T12:00:00.000Z",
       "updated_at": "2025-01-20T12:00:00.000Z"
     },
@@ -125,13 +132,28 @@
       "user_id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f",
       "title": "Apple Pie",
       "description": "A classic American dessert with a flaky crust and sweet apple filling",
-      "ingredients": ["apples", "flour", "sugar", "butter", "cinnamon", "nutmeg"],
-      "instructions": ["Preheat oven to 375°F", "Mix ingredients", "Bake for 45 minutes"],
+      "ingredients": [
+        "apples",
+        "flour",
+        "sugar",
+        "butter",
+        "cinnamon",
+        "nutmeg"
+      ],
+      "instructions": [
+        "Preheat oven to 375°F",
+        "Mix ingredients",
+        "Bake for 45 minutes"
+      ],
       "cooking_time": 60,
       "difficulty": "medium",
       "servings": 8,
       "category": "dessert",
-      "tags": ["pie", "dessert", "apple"],
+      "tags": [
+        "pie",
+        "dessert",
+        "apple"
+      ],
       "image_url": null,
       "created_at": "2025-01-20T10:00:00.000Z",
       "updated_at": "2025-01-20T10:00:00.000Z"
@@ -141,13 +163,29 @@
       "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "title": "Chocolate Cake",
       "description": "Rich and moist chocolate cake with chocolate frosting",
-      "ingredients": ["flour", "cocoa powder", "sugar", "eggs", "milk", "vanilla"],
-      "instructions": ["Preheat oven to 350°F", "Mix dry ingredients", "Add wet ingredients", "Bake for 30 minutes"],
+      "ingredients": [
+        "flour",
+        "cocoa powder",
+        "sugar",
+        "eggs",
+        "milk",
+        "vanilla"
+      ],
+      "instructions": [
+        "Preheat oven to 350°F",
+        "Mix dry ingredients",
+        "Add wet ingredients",
+        "Bake for 30 minutes"
+      ],
       "cooking_time": 45,
       "difficulty": "easy",
       "servings": 12,
       "category": "dessert",
-      "tags": ["cake", "chocolate", "dessert"],
+      "tags": [
+        "cake",
+        "chocolate",
+        "dessert"
+      ],
       "image_url": null,
       "created_at": "2025-01-20T11:00:00.000Z",
       "updated_at": "2025-01-20T11:00:00.000Z"
@@ -157,16 +195,82 @@
       "user_id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f",
       "title": "Chicken Pasta",
       "description": "Creamy pasta with grilled chicken and vegetables",
-      "ingredients": ["pasta", "chicken breast", "cream", "parmesan", "garlic", "vegetables"],
-      "instructions": ["Cook pasta", "Grill chicken", "Make sauce", "Combine all ingredients"],
+      "ingredients": [
+        "pasta",
+        "chicken breast",
+        "cream",
+        "parmesan",
+        "garlic",
+        "vegetables"
+      ],
+      "instructions": [
+        "Cook pasta",
+        "Grill chicken",
+        "Make sauce",
+        "Combine all ingredients"
+      ],
       "cooking_time": 30,
       "difficulty": "medium",
       "servings": 4,
       "category": "main",
-      "tags": ["pasta", "chicken", "main course"],
+      "tags": [
+        "pasta",
+        "chicken",
+        "main course"
+      ],
       "image_url": null,
       "created_at": "2025-01-20T12:00:00.000Z",
       "updated_at": "2025-01-20T12:00:00.000Z"
+    },
+    {
+      "user_id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f",
+      "title": "garlic green beans",
+      "description": "",
+      "ingredients": [
+        "green beans",
+        "galic",
+        "olive oil"
+      ],
+      "instructions": [
+        "Boil the beans for 4 minutes until they become bright green and are barely tender. Drain and then toss the beans in a skillet with the garlic."
+      ],
+      "cooking_time": "8",
+      "difficulty": "easy",
+      "servings": 1,
+      "category": "appetizer",
+      "tags": [
+        "galic",
+        "green beans"
+      ],
+      "image_url": "https://res.cloudinary.com/dqbg4ybgc/image/upload/v1751743205/v40gmkmhogv5hgr9uim4.jpg",
+      "created_at": "2025-07-05T19:20:06.056Z",
+      "id": 4,
+      "updated_at": "2025-07-05T19:20:06.056Z"
+    },
+    {
+      "user_id": "74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f",
+      "title": "garlic green beans",
+      "description": "",
+      "ingredients": [
+        "green beans",
+        "galic",
+        "olive oil "
+      ],
+      "instructions": [
+        "Boil the beans for 4 minutes until they become bright green and are barely tender. Drain and then toss the beans in a skillet with the garlic."
+      ],
+      "cooking_time": "8",
+      "difficulty": "easy",
+      "servings": 1,
+      "category": "main",
+      "tags": [
+        "galic",
+        "green beans"
+      ],
+      "image_url": "https://res.cloudinary.com/dqbg4ybgc/image/upload/v1751743655/hlyotdoswk4i2e8mxmql.jpg",
+      "created_at": "2025-07-05T19:27:36.394Z",
+      "id": 5,
+      "updated_at": "2025-07-05T19:27:36.394Z"
     }
   ],
   "hashtags": []

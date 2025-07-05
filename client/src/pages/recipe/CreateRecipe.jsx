@@ -212,7 +212,7 @@ const CreateRecipe = () => {
 
       if (response.success) {
         addNotification('Recipe created successfully!', 'success');
-        navigate(`/app/recipe/${response.data.id}`);
+        navigate('/app/recipe-search');
       } else {
         throw new Error(response.message || 'Failed to create recipe');
       }
