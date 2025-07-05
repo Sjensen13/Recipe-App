@@ -14,6 +14,7 @@ import PostDetail from './pages/post/PostDetail';
 import CreatePost from './pages/post/CreatePost';
 import Messages from './pages/messaging/Messages';
 import RecipeSearch from './pages/recipe/RecipeSearch';
+import CreateRecipe from './pages/recipe/CreateRecipe';
 import Notifications from './pages/Notifications';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
               <Route path="messages" element={<Messages />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="recipe-search" element={<RecipeSearch />} />
+              <Route path="recipe/create" element={<CreateRecipe />} />
               <Route path="profile/:userId" element={<Profile />} />
               <Route path="post/:postId" element={<PostDetail />} />
             </Route>
