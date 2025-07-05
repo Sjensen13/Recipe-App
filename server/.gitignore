@@ -1,2 +1,3 @@
 # Ignore Google service account keys
 keys/ 
+vision-service-account.json 
