@@ -114,6 +114,12 @@ const createMockTable = (tableName) => ({
               result.sender = mockData.users.find(u => u.id === data.sender_id) || null;
             }
             
+            // Handle recipes with user data
+            if (tableName === 'recipes' && columns.includes('user')) {
+              const user = mockData.users.find(u => u.id === data.user_id);
+              result.user = user || null;
+            }
+            
             return Promise.resolve({ data: result, error: null });
           }
           
@@ -192,9 +198,186 @@ const createMockTable = (tableName) => ({
         
         return Promise.resolve({ data: [], error: null });
       },
+      eq: (column, value) => {
+        const filteredData = mockData[tableName].filter(item => item[column] === value);
+        
+        return {
+          order: (column, options = {}) => {
+            const { ascending = true } = options;
+            let data = [...filteredData];
+            
+            // Sort the data
+            data.sort((a, b) => {
+              const aVal = a[column];
+              const bVal = b[column];
+              
+              if (ascending) {
+                return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+              } else {
+                return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+              }
+            });
+            
+            // Handle complex selects with joins for recipes
+            if (isComplexSelect && tableName === 'recipes') {
+              data = data.map(recipe => {
+                const result = { ...recipe };
+                
+                // Add user data
+                if (columns.includes('user')) {
+                  const user = mockData.users.find(u => u.id === recipe.user_id);
+                  result.user = user || null;
+                }
+                
+                return result;
+              });
+            }
+            
+            return {
+              range: (start, end) => {
+                const rangedData = data.slice(start, end + 1);
+                return Promise.resolve({ data: rangedData, error: null });
+              }
+            };
+          }
+        };
+      },
+      or: (condition) => {
+        // Handle search conditions for recipes
+        if (tableName === 'recipes' && condition.includes('title.ilike.') && condition.includes('description.ilike.')) {
+          const searchTerm = condition.match(/\.ilike\.%([^%]+)%/)?.[1];
+          if (searchTerm) {
+            const filteredData = mockData[tableName].filter(recipe => 
+              recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              recipe.description.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            
+            return {
+              order: (column, options = {}) => {
+                const { ascending = true } = options;
+                let data = [...filteredData];
+                
+                // Sort the data
+                data.sort((a, b) => {
+                  const aVal = a[column];
+                  const bVal = b[column];
+                  
+                  if (ascending) {
+                    return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                  } else {
+                    return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+                  }
+                });
+                
+                // Handle complex selects with joins for recipes
+                if (isComplexSelect && tableName === 'recipes') {
+                  data = data.map(recipe => {
+                    const result = { ...recipe };
+                    
+                    // Add user data
+                    if (columns.includes('user')) {
+                      const user = mockData.users.find(u => u.id === recipe.user_id);
+                      result.user = user || null;
+                    }
+                    
+                    return result;
+                  });
+                }
+                
+                return {
+                  range: (start, end) => {
+                    const rangedData = data.slice(start, end + 1);
+                    return Promise.resolve({ data: rangedData, error: null });
+                  }
+                };
+              }
+            };
+          }
+        }
+        
+        // For any other OR condition, just return all data
+        return {
+          order: (column, options = {}) => {
+            const { ascending = true } = options;
+            let data = [...mockData[tableName]];
+            
+            // Sort the data
+            data.sort((a, b) => {
+              const aVal = a[column];
+              const bVal = b[column];
+              
+              if (ascending) {
+                return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+              } else {
+                return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+              }
+            });
+            
+            // Handle complex selects with joins for recipes
+            if (isComplexSelect && tableName === 'recipes') {
+              data = data.map(recipe => {
+                const result = { ...recipe };
+                
+                // Add user data
+                if (columns.includes('user')) {
+                  const user = mockData.users.find(u => u.id === recipe.user_id);
+                  result.user = user || null;
+                }
+                
+                return result;
+              });
+            }
+            
+            return {
+              range: (start, end) => {
+                const rangedData = data.slice(start, end + 1);
+                return Promise.resolve({ data: rangedData, error: null });
+              }
+            };
+          }
+        };
+      },
       limit: (count) => {
         const data = mockData[tableName].slice(0, count);
         return Promise.resolve({ data, error: null });
+      },
+      order: (column, options = {}) => {
+        const { ascending = true } = options;
+        let data = [...mockData[tableName]];
+        
+        // Sort the data
+        data.sort((a, b) => {
+          const aVal = a[column];
+          const bVal = b[column];
+          
+          if (ascending) {
+            return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+          } else {
+            return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+          }
+        });
+        
+        // Handle complex selects with joins for recipes
+        if (isComplexSelect && tableName === 'recipes') {
+          data = data.map(recipe => {
+            const result = { ...recipe };
+            
+            // Add user data
+            if (columns.includes('user')) {
+              const user = mockData.users.find(u => u.id === recipe.user_id);
+              result.user = user || null;
+            }
+            
+            return result;
+          });
+        }
+        
+        return {
+          range: (start, end) => {
+            const rangedData = data.slice(start, end + 1);
+            return Promise.resolve({ data: rangedData, error: null });
+          }
+        };
       },
       contains: (column, value) => {
         // Filter data based on array containment

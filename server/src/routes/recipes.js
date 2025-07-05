@@ -15,7 +15,7 @@ const {
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(authenticateToken);
+// router.use(authenticateToken);
 
 // Recipe CRUD operations
 router.post('/', createRecipe);

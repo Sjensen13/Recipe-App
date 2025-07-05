@@ -1,6 +1,5 @@
 const { getSupabase } = require('../../services/database');
-const { detectIngredientsFromImage } = require('../../services/ai/vision');
-const { searchRecipesByIngredients } = require('../../services/ai/recipeSearch');
+const { searchRecipesByIngredients, searchRecipesByNameOrIngredients } = require('../../services/ai/recipeSearch');
 
 /**
  * Create a new recipe
@@ -66,52 +65,24 @@ const createRecipe = async (req, res) => {
  * GET /api/recipes
  */
 const getRecipes = async (req, res) => {
-  const supabase = getSupabase();
   try {
     const { 
       page = 1, 
       limit = 10, 
-      category, 
-      difficulty, 
-      user_id,
-      search,
-      sort_by = 'created_at',
-      sort_order = 'desc'
+      search = '',
+      ingredients = '',
     } = req.query;
 
-    const offset = (page - 1) * limit;
-    let query = supabase
-      .from('recipes')
-      .select(`
-        *,
-        user:users(id, username, avatar_url, full_name)
-      `)
-      .order(sort_by, { ascending: sort_order === 'asc' })
-      .range(offset, offset + limit - 1);
-
-    // Apply filters
-    if (category) {
-      query = query.eq('category', category);
-    }
-    if (difficulty) {
-      query = query.eq('difficulty', difficulty);
-    }
-    if (user_id) {
-      query = query.eq('user_id', user_id);
-    }
-    if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+    // Parse ingredients as array (comma-separated or array)
+    let ingredientsArr = [];
+    if (Array.isArray(ingredients)) {
+      ingredientsArr = ingredients;
+    } else if (typeof ingredients === 'string' && ingredients.trim() !== '') {
+      ingredientsArr = ingredients.split(',').map(s => s.trim()).filter(Boolean);
     }
 
-    const { data: recipes, error, count } = await query;
-
-    if (error) {
-      console.error('Error fetching recipes:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch recipes'
-      });
-    }
+    // Use the new combined search function
+    const recipes = await searchRecipesByNameOrIngredients(search, ingredientsArr, parseInt(limit));
 
     res.json({
       success: true,
@@ -119,7 +90,7 @@ const getRecipes = async (req, res) => {
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: count || recipes.length
+        total: recipes.length
       }
     });
   } catch (error) {
@@ -144,7 +115,7 @@ const getRecipeById = async (req, res) => {
       .from('recipes')
       .select(`
         *,
-        user:users(id, username, avatar_url, full_name)
+        user:users(id, username, avatar_url, name)
       `)
       .eq('id', id)
       .single();

@@ -70,16 +70,18 @@ const RecipeSearch = () => {
     loadMetadata();
   }, []);
 
-  // Search recipes by name/description
-  const searchRecipes = useCallback(async () => {
-    if (!searchQuery.trim()) return;
-
+  // Combined search function
+  const combinedSearch = useCallback(async () => {
     setLoading(true);
     setError(null);
+
+    // Combine detected and manual ingredients
+    const allIngredients = [...detectedIngredients, ...manualIngredients];
 
     try {
       const response = await getRecipes({
         search: searchQuery,
+        ingredients: allIngredients.length > 0 ? allIngredients.join(',') : undefined,
         ...filters
       });
 
@@ -96,33 +98,7 @@ const RecipeSearch = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, filters, addNotification]);
-
-  // Search recipes by ingredients
-  const searchByIngredientsList = useCallback(async () => {
-    const allIngredients = [...detectedIngredients, ...manualIngredients];
-    if (allIngredients.length === 0) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await searchByIngredients(allIngredients, 20);
-
-      if (response.success) {
-        setRecipes(response.data);
-      } else {
-        setError('Failed to search recipes by ingredients');
-        addNotification('Failed to search recipes by ingredients', 'error');
-      }
-    } catch (error) {
-      console.error('Ingredient search error:', error);
-      setError('Failed to search recipes by ingredients');
-      addNotification('Failed to search recipes by ingredients', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [detectedIngredients, manualIngredients, addNotification]);
+  }, [searchQuery, detectedIngredients, manualIngredients, filters, addNotification]);
 
   // Commented out: const handleIngredientDetection = async (imageFile) => {
   //   try {
@@ -227,10 +203,10 @@ const RecipeSearch = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search for recipes..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    onKeyPress={(e) => e.key === 'Enter' && searchRecipes()}
+                    onKeyPress={(e) => e.key === 'Enter' && combinedSearch()}
                   />
                   <button
-                    onClick={searchRecipes}
+                    onClick={combinedSearch}
                     disabled={!searchQuery.trim() || loading}
                     className="btn-primary"
                   >
@@ -309,7 +285,7 @@ const RecipeSearch = () => {
               {/* Search Button */}
               <div className="flex justify-center">
                 <button
-                  onClick={searchByIngredientsList}
+                  onClick={combinedSearch}
                   disabled={detectedIngredients.length === 0 && manualIngredients.length === 0 || loading}
                   className="btn-primary px-8 py-3"
                 >
@@ -331,7 +307,7 @@ const RecipeSearch = () => {
           <div className="mt-8">
             <ErrorState 
               message={error}
-              onRetry={() => activeTab === 'search' ? searchRecipes() : searchByIngredientsList()}
+              onRetry={combinedSearch}
             />
           </div>
         )}

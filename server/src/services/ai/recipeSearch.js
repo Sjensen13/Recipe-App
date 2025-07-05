@@ -139,7 +139,7 @@ const searchLocalRecipesByIngredients = async (ingredients, limit) => {
       .from('recipes')
       .select(`
         *,
-        user:users(id, username, avatar_url, full_name)
+        user:users(id, username, avatar_url, name)
       `)
       .or(searchConditions)
       .order('created_at', { ascending: false })
@@ -223,7 +223,7 @@ const searchRecipesByName = async (query, limit = 10) => {
       .from('recipes')
       .select(`
         *,
-        user:users(id, username, avatar_url, full_name)
+        user:users(id, username, avatar_url, name)
       `)
       .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
       .order('created_at', { ascending: false })
@@ -271,7 +271,7 @@ const getRecipeRecommendations = async (userId, limit = 10) => {
       .from('recipes')
       .select(`
         *,
-        user:users(id, username, avatar_url, full_name)
+        user:users(id, username, avatar_url, name)
       `)
       .neq('user_id', userId) // Don't recommend user's own recipes
       .order('created_at', { ascending: false })
@@ -299,10 +299,85 @@ const getRecipeRecommendations = async (userId, limit = 10) => {
   }
 };
 
+/**
+ * Search Spoonacular by name/description (complexSearch endpoint)
+ * @param {string} query - Search query
+ * @param {number} limit - Max results
+ * @returns {Promise<Array>} Array of recipes
+ */
+const searchExternalRecipesByName = async (query, limit = 10) => {
+  try {
+    if (!SPOONACULAR_API_KEY) return [];
+    const response = await axios.get(`${SPOONACULAR_BASE_URL}/complexSearch`, {
+      params: {
+        apiKey: SPOONACULAR_API_KEY,
+        query,
+        number: limit,
+        addRecipeInformation: true
+      }
+    });
+    // Map to unified recipe format
+    return (response.data.results || []).map(recipe => ({
+      id: `external_${recipe.id}`,
+      title: recipe.title,
+      description: recipe.summary ? recipe.summary.replace(/<[^>]*>/g, '') : '',
+      ingredients: recipe.extendedIngredients ? recipe.extendedIngredients.map(ing => ing.original) : [],
+      instructions: recipe.analyzedInstructions && recipe.analyzedInstructions[0]?.steps ? recipe.analyzedInstructions[0].steps.map(step => step.step) : [],
+      cooking_time: recipe.readyInMinutes,
+      servings: recipe.servings,
+      difficulty: getDifficultyFromTime(recipe.readyInMinutes),
+      category: recipe.cuisines && recipe.cuisines[0] ? recipe.cuisines[0] : 'main',
+      image_url: recipe.image,
+      tags: [...(recipe.cuisines || []), ...(recipe.dishTypes || [])],
+      source: 'spoonacular',
+      external_url: recipe.sourceUrl,
+      nutrition: recipe.nutrition?.nutrients || [],
+      created_at: new Date().toISOString(),
+      user: {
+        id: 'external',
+        username: 'spoonacular',
+        full_name: 'Spoonacular',
+        avatar_url: null
+      }
+    }));
+  } catch (error) {
+    console.error('Error searching Spoonacular by name:', error);
+    return [];
+  }
+};
+
+/**
+ * Search recipes by both name/description and ingredients (local + Spoonacular)
+ * @param {string} query - Search query (name/description)
+ * @param {Array} ingredients - Array of ingredient names
+ * @param {number} limit - Maximum number of recipes to return
+ * @returns {Promise<Array>} Array of recipes
+ */
+const searchRecipesByNameOrIngredients = async (query, ingredients = [], limit = 10) => {
+  // Use a higher limit for each source to ensure enough results after deduplication
+  const fetchLimit = Math.max(20, limit);
+
+  const localByName = query ? await searchRecipesByName(query, fetchLimit) : [];
+  const localByIngredients = ingredients.length > 0 ? await searchLocalRecipesByIngredients(ingredients, fetchLimit) : [];
+  const spoonacularByIngredients = ingredients.length > 0 ? await searchExternalRecipesByIngredients(ingredients, fetchLimit) : [];
+  const spoonacularByName = query ? await searchExternalRecipesByName(query, fetchLimit) : [];
+
+  const allRecipes = [
+    ...localByName,
+    ...localByIngredients,
+    ...spoonacularByIngredients,
+    ...spoonacularByName
+  ];
+  const uniqueRecipes = deduplicateRecipes(allRecipes);
+  return uniqueRecipes.slice(0, limit);
+};
+
 module.exports = {
   searchRecipesByIngredients,
   searchRecipesByName,
   getRecipeRecommendations,
   searchExternalRecipesByIngredients,
-  searchLocalRecipesByIngredients
+  searchLocalRecipesByIngredients,
+  searchRecipesByNameOrIngredients,
+  searchExternalRecipesByName // <-- export new function
 }; 

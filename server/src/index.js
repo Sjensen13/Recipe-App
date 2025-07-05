@@ -57,6 +57,18 @@ app.use('/api/hashtags', hashtagsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/search', searchRoutes);
 
+// --- TEST ROUTE: Spoonacular name search (remove after testing) ---
+app.get('/api/test-spoonacular-name', async (req, res) => {
+  try {
+    const { searchExternalRecipesByName } = require('./services/ai/recipeSearch');
+    const results = await searchExternalRecipesByName('chicken', 5);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// --- END TEST ROUTE ---
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

@@ -1,11 +1,3 @@
-console.log('GOOGLE_APPLICATION_CREDENTIALS:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
-const fs = require('fs');
-try {
-  const creds = fs.readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf8');
-  console.log('First 200 chars of credentials file:', creds.slice(0, 200));
-} catch (e) {
-  console.error('Could not read credentials file:', e.message);
-}
 const axios = require('axios');
 
 console.log('Using Roboflow for ingredient detection');
@@ -39,21 +31,13 @@ console.log('Using Roboflow for ingredient detection');
  */
 const analyzeImage = async (imageUrl) => {
   try {
-    const [result] = await client.annotateImage({
-      image: { source: { imageUri: imageUrl } },
-      features: [
-        { type: 'LABEL_DETECTION' },
-        { type: 'TEXT_DETECTION' },
-        { type: 'OBJECT_LOCALIZATION' },
-        { type: 'SAFE_SEARCH_DETECTION' }
-      ]
-    });
-
+    // For now, return a placeholder since Google Cloud Vision is not set up
+    console.log('Image analysis requested for:', imageUrl);
     return {
-      labels: result.labelAnnotations || [],
-      text: result.textAnnotations || [],
-      objects: result.localizedObjectAnnotations || [],
-      safeSearch: result.safeSearchAnnotation || {}
+      labels: [],
+      text: [],
+      objects: [],
+      safeSearch: {}
     };
   } catch (error) {
     console.error('Error analyzing image:', error);
@@ -62,5 +46,6 @@ const analyzeImage = async (imageUrl) => {
 };
 
 module.exports = {
-  // detectIngredientsFromImage
+  // detectIngredientsFromImage,
+  analyzeImage
 }; 
