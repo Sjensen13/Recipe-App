@@ -1,4 +1,8 @@
 const { getSupabase } = require('../../services/database');
+const { 
+  createLikeNotification, 
+  createCommentNotification 
+} = require('../notifications');
 
 /**
  * Get all posts with pagination
@@ -356,6 +360,33 @@ const likePost = async (req, res) => {
   } else {
     // Like (add like)
     await supabase.from('likes').insert({ post_id: postId, user_id: userId });
+    
+    // Get post details for notification
+    const { data: post } = await supabase
+      .from('posts')
+      .select('user_id, title')
+      .eq('id', postId)
+      .single();
+
+    // Get user details for notification
+    const { data: user } = await supabase
+      .from('users')
+      .select('username, name')
+      .eq('id', userId)
+      .single();
+
+    // Create notification if post owner is different from liker
+    if (post && post.user_id !== userId) {
+      const actorName = user?.name || user?.username || 'Someone';
+      await createLikeNotification(
+        post.user_id,
+        userId,
+        actorName,
+        postId,
+        post.title
+      );
+    }
+
     return res.json({ success: true, liked: true });
   }
 };
@@ -384,6 +415,33 @@ const addComment = async (req, res) => {
 
   if (error) {
     return res.status(500).json({ success: false, message: 'Failed to add comment' });
+  }
+
+  // Get post details for notification
+  const { data: post } = await supabase
+    .from('posts')
+    .select('user_id, title')
+    .eq('id', postId)
+    .single();
+
+  // Get user details for notification
+  const { data: user } = await supabase
+    .from('users')
+    .select('username, name')
+    .eq('id', userId)
+    .single();
+
+  // Create notification if post owner is different from commenter
+  if (post && post.user_id !== userId) {
+    const actorName = user?.name || user?.username || 'Someone';
+    await createCommentNotification(
+      post.user_id,
+      userId,
+      actorName,
+      postId,
+      comment.id,
+      content
+    );
   }
 
   res.status(201).json({ success: true, comment });

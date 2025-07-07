@@ -109,8 +109,8 @@ npm start
 cd server
 npm run dev
 ```
-- API will run on http://localhost:5000
-- Test with: http://localhost:5000/api/health
+- API will run on http://localhost:5001
+- Test with: http://localhost:5001/api/health
 
 ## 📋 Development Phases
 

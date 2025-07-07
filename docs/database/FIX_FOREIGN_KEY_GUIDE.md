@@ -89,7 +89,7 @@ curl -X POST -H "Authorization: Bearer YOUR_TOKEN" \
     "servings": 4,
     "category": "main"
   }' \
-  http://localhost:5000/api/recipes
+  http://localhost:5001/api/recipes
 ```
 
 ## Code Changes Made

@@ -224,11 +224,11 @@ After setting up the database, test these endpoints:
 ```bash
 # Get recipe categories
 curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:5000/api/recipes/categories
+  http://localhost:5001/api/recipes/categories
 
 # Get recipe difficulties
 curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:5000/api/recipes/difficulties
+  http://localhost:5001/api/recipes/difficulties
 
 # Create a test recipe
 curl -X POST -H "Authorization: Bearer YOUR_TOKEN" \
@@ -243,7 +243,7 @@ curl -X POST -H "Authorization: Bearer YOUR_TOKEN" \
     "servings": 4,
     "category": "main"
   }' \
-  http://localhost:5000/api/recipes
+  http://localhost:5001/api/recipes
 ```
 
 ## Troubleshooting

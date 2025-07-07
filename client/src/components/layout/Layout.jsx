@@ -10,6 +10,7 @@ import {
   Compass 
 } from 'lucide-react';
 import useUnreadMessages from '../../hooks/useUnreadMessages';
+import useNotifications from '../../hooks/useNotifications';
 
 const navLinks = [
   { to: '/app/home', label: 'Home', icon: Home },
@@ -23,13 +24,15 @@ const navLinks = [
 
 const Layout = () => {
   const location = useLocation();
-  const { unreadCount } = useUnreadMessages();
+  const { unreadCount: unreadMessages } = useUnreadMessages();
+  const { unreadCount: unreadNotifications } = useNotifications();
 
   const isActive = (path) => location.pathname === path;
 
   const NavLink = ({ link, isMobile = false }) => {
     const IconComponent = link.icon;
-    const hasUnreadMessages = link.showBadge && unreadCount > 0;
+    const hasUnreadMessages = link.showBadge && unreadMessages > 0;
+    const hasUnreadNotifications = link.label === 'Notifications' && unreadNotifications > 0;
     
     const baseStyles = isMobile ? {
       display: 'flex',
@@ -68,7 +71,7 @@ const Layout = () => {
       >
         <div style={{ position: 'relative' }}>
           <IconComponent size={20} />
-          {hasUnreadMessages && (
+          {(hasUnreadMessages || hasUnreadNotifications) && (
             <span style={{
               position: 'absolute',
               top: '-6px',
@@ -85,7 +88,10 @@ const Layout = () => {
               justifyContent: 'center',
               minWidth: '18px'
             }}>
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {hasUnreadMessages 
+                ? (unreadMessages > 9 ? '9+' : unreadMessages)
+                : (unreadNotifications > 9 ? '9+' : unreadNotifications)
+              }
             </span>
           )}
         </div>

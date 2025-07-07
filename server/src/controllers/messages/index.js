@@ -1,4 +1,5 @@
 const { getSupabase } = require('../../services/database');
+const { createMessageNotification } = require('../notifications');
 
 // Get all conversations for a user
 const getConversations = async (req, res) => {
@@ -207,6 +208,25 @@ const sendMessage = async (req, res) => {
       sender: usersMap.get(message.sender_id),
       receiver: usersMap.get(message.receiver_id)
     };
+
+    // Create notification for receiver
+    const sender = usersMap.get(message.sender_id);
+    const receiver = usersMap.get(message.receiver_id);
+    
+    if (sender && receiver) {
+      const actorName = sender.name || sender.username || 'Someone';
+      const messagePreview = content.trim().length > 50 
+        ? content.trim().substring(0, 50) + '...' 
+        : content.trim();
+      
+      await createMessageNotification(
+        actualReceiverId,
+        user_id,
+        actorName,
+        message.id,
+        messagePreview
+      );
+    }
 
     res.status(201).json(messageWithUsers);
   } catch (error) {

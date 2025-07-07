@@ -48,7 +48,7 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 npm run dev
 ```
 
-The API will be available at `http://localhost:5000`
+The API will be available at `http://localhost:5001`
 
 ## Project Structure
 

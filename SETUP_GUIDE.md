@@ -46,7 +46,7 @@
 
 ```env
 # API Configuration
-REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_API_URL=http://localhost:5001/api
 
 # Supabase Configuration
 REACT_APP_SUPABASE_URL=https://your-project-ref.supabase.co

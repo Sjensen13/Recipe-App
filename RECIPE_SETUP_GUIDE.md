@@ -186,7 +186,7 @@ cd server && npm run dev
 
 # Test API endpoints
 curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:5000/api/recipes/categories
+  http://localhost:5001/api/recipes/categories
 ```
 
 ## 📱 Usage Flow

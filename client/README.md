@@ -30,7 +30,7 @@ npm install
 
 2. Create a `.env` file in the client directory:
 ```env
-REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_API_URL=http://localhost:5001/api
 REACT_APP_SUPABASE_URL=your_supabase_url
 REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
 REACT_APP_GOOGLE_VISION_API_KEY=your_google_vision_api_key

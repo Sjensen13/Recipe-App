@@ -15,17 +15,18 @@ const recipesRoutes = require('./routes/recipes');
 const hashtagsRoutes = require('./routes/hashtags');
 const uploadRoutes = require('./routes/upload');
 const searchRoutes = require('./routes/search');
+const notificationsRoutes = require('./routes/notifications');
 
 const { errorHandler } = require('./middleware/errorHandler');
 const { connectDatabase } = require('./services/database');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
-// Rate limiting
+// Rate limiting - increased limit for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 1000, // limit each IP to 1000 requests per windowMs (increased for development)
   message: 'Too many requests from this IP, please try again later.'
 });
 
@@ -56,6 +57,7 @@ app.use('/api/recipes', recipesRoutes);
 app.use('/api/hashtags', hashtagsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // --- TEST ROUTE: Spoonacular name search (remove after testing) ---
 app.get('/api/test-spoonacular-name', async (req, res) => {
