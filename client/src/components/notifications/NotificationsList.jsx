@@ -17,7 +17,10 @@ const NotificationsList = ({
 }) => {
   const [filter, setFilter] = useState('all'); // 'all', 'unread', 'read'
 
-  const filteredNotifications = notifications.filter(notification => {
+  // Filter out message-related notifications
+  const nonMessageNotifications = notifications.filter(n => n.type !== 'message');
+
+  const filteredNotifications = nonMessageNotifications.filter(notification => {
     switch (filter) {
       case 'unread':
         return !notification.is_read;
@@ -28,8 +31,8 @@ const NotificationsList = ({
     }
   });
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-  const readCount = notifications.filter(n => n.is_read).length;
+  const unreadCount = nonMessageNotifications.filter(n => !n.is_read).length;
+  const readCount = nonMessageNotifications.filter(n => n.is_read).length;
 
   if (loading && notifications.length === 0) {
     return (

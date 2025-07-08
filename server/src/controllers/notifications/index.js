@@ -83,11 +83,13 @@ const getUnreadCount = async (req, res) => {
     
     const supabase = getSupabase();
     
+    // Exclude notifications of type 'message'
     const { count, error } = await supabase
       .from('notifications')
       .select('id', { count: 'exact' })
       .eq('user_id', user_id)
-      .eq('is_read', false);
+      .eq('is_read', false)
+      .neq('type', 'message');
     
     if (error) {
       console.error('Error fetching unread count:', error);

@@ -67,7 +67,14 @@ const useNotifications = () => {
     try {
       const response = await getUnreadCount();
       if (response.success) {
-        setUnreadCount(response.data.unread_count);
+        // If backend returns notifications array, filter out 'message' type
+        if (response.data.notifications) {
+          const nonMessageCount = response.data.notifications.filter(n => n.type !== 'message' && !n.is_read).length;
+          setUnreadCount(nonMessageCount);
+        } else {
+          // Otherwise, use the unread_count as is
+          setUnreadCount(response.data.unread_count);
+        }
       }
     } catch (error) {
       console.error('Error fetching unread count:', error);

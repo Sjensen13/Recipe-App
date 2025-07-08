@@ -5,12 +5,14 @@ import MessageInput from './MessageInput';
 import Avatar from '../ui/Avatar';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import ErrorState from '../ui/ErrorState';
+import useUnreadMessages from '../../hooks/useUnreadMessages';
 
 const ConversationView = ({ conversation, onBack }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
+  const { fetchUnreadCount } = useUnreadMessages();
 
   useEffect(() => {
     if (conversation?.id) {
@@ -47,6 +49,7 @@ const ConversationView = ({ conversation, onBack }) => {
   const markAsRead = async () => {
     try {
       await markConversationAsRead(conversation.id);
+      fetchUnreadCount(); // Refetch unread count after marking as read
     } catch (error) {
       console.error('Error marking conversation as read:', error);
     }

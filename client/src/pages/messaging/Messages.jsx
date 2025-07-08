@@ -106,11 +106,7 @@ const Messages = () => {
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
-              {unreadCount > 0 && (
-                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
+              {/* Removed unread count badge from header */}
             </div>
           </div>
           

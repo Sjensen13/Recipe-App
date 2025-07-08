@@ -235,13 +235,27 @@ const sendMessage = async (req, res) => {
   }
 };
 
-// Mark conversation as read (simplified - just return success)
+// Mark conversation as read
 const markAsRead = async (req, res) => {
   try {
-    // Since we don't have read_at column, just return success
+    const { conversation_id } = req.params; // This is the other user's ID
+    const user_id = req.user.id;
+    const supabase = getSupabase();
+
+    // Mark all messages sent to the user by the other user as read
+    const { error } = await supabase
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('sender_id', conversation_id)
+      .eq('receiver_id', user_id)
+      .is('read_at', null);
+
+    if (error) {
+      return res.status(500).json({ message: 'Failed to mark messages as read' });
+    }
+
     res.json({ message: 'Messages marked as read' });
   } catch (error) {
-    console.error('Error in markAsRead:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -283,14 +297,24 @@ const deleteMessage = async (req, res) => {
   }
 };
 
-// Get unread message count (simplified - return 0 for now)
+// Get unread message count
 const getUnreadCount = async (req, res) => {
   try {
-    // Since we don't have read_at tracking, return 0
-    // You can implement this later by adding a read_at column
-    res.json({ unread_count: 0 });
+    const user_id = req.user.id;
+    const supabase = getSupabase();
+
+    const { count, error } = await supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('receiver_id', user_id)
+      .is('read_at', null);
+
+    if (error) {
+      return res.status(500).json({ message: 'Failed to fetch unread count' });
+    }
+
+    res.json({ unread_count: count || 0 });
   } catch (error) {
-    console.error('Error in getUnreadCount:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
