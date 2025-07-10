@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
 
     setLoading(true);
     try {
-      // First, try to authenticate with the provided username/email
+      // First, try to authenticate with the provided username/email as email
       const { data, error } = await supabase.auth.signInWithPassword({
         email: usernameOrEmail, // Try as email first
         password
@@ -68,16 +68,15 @@ export const AuthProvider = ({ children }) => {
         // If email login fails, try username login through our API
         if (error.message.includes('Invalid login credentials')) {
           try {
-            // Call our custom login endpoint that handles username lookup
-            const response = await apiClient.post('/auth/login', {
-              username: usernameOrEmail,
-              password: password
+            // First, get the email for the username
+            const emailResponse = await apiClient.post('/auth/get-email-by-username', {
+              username: usernameOrEmail
             });
 
-            if (response.data.success) {
-              // Get the user's email from the response and login with Supabase
+            if (emailResponse.data.success) {
+              // Now login with the email
               const { data: supabaseData, error: supabaseError } = await supabase.auth.signInWithPassword({
-                email: response.data.email,
+                email: emailResponse.data.email,
                 password: password
               });
 
@@ -88,7 +87,7 @@ export const AuthProvider = ({ children }) => {
               setUser(supabaseData.user);
               return supabaseData.user;
             } else {
-              throw new Error(response.data.message || 'Invalid credentials');
+              throw new Error('Invalid username or password');
             }
           } catch (apiError) {
             throw new Error('Invalid username or password');

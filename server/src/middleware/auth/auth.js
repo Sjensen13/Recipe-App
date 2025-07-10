@@ -12,6 +12,22 @@ async function authenticateToken(req, res, next) {
       });
     }
 
+    // Check if this is a mock token (for development)
+    if (token.startsWith('mock_jwt_token_')) {
+      // Mock user for development
+      req.user = {
+        id: '74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f',
+        email: 'test@example.com',
+        username: 'test',
+        name: 'Test User',
+        user_metadata: {
+          username: 'test',
+          name: 'Test User'
+        }
+      };
+      return next();
+    }
+
     // Get the Supabase client from the database service
     const supabase = getSupabase();
     

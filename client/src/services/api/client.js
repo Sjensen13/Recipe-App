@@ -3,7 +3,7 @@ import { supabase } from '../supabase/client';
 
 // Create axios instance
 const apiClient = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -29,7 +29,9 @@ apiClient.interceptors.request.use(
 
 // Add response interceptor to handle auth errors
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   async (error) => {
     if (error.response?.status === 401) {
       // Token might be expired, try to refresh
