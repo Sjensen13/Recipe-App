@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -8,16 +8,33 @@ import { apiClient } from '../../services/api';
 
 export default function MessagesScreen({ navigation }) {
   const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
   const { data: conversations, isLoading, error } = useQuery(
     'conversations',
     async () => {
       const response = await apiClient.get('/messages/conversations');
+      console.log('Conversations API response:', JSON.stringify(response.data, null, 2));
       return response.data;
     },
     {
       refetchOnWindowFocus: false,
       retry: 3,
+    }
+  );
+
+  // Search users query
+  const { data: searchResults, isLoading: searchLoading } = useQuery(
+    ['searchUsers', searchQuery],
+    async () => {
+      if (!searchQuery.trim()) return [];
+      const response = await apiClient.get(`/search/users?q=${encodeURIComponent(searchQuery.trim())}`);
+      return response.data.data.filter(u => u.id !== user?.id); // Exclude current user
+    },
+    {
+      enabled: !!searchQuery.trim(),
+      refetchOnWindowFocus: false,
     }
   );
 
@@ -38,20 +55,20 @@ export default function MessagesScreen({ navigation }) {
   };
 
   const renderConversation = ({ item }) => {
-    const otherUser = item.participants?.find(p => p.user_id !== user?.id);
-    const lastMessage = item.last_message?.[0];
+    const otherUser = item.other_user;
+    const lastMessage = item.last_message;
 
     return (
       <TouchableOpacity 
         style={styles.conversationItem}
-        onPress={() => navigation.navigate('Conversation', { conversationId: item.id })}
+        onPress={() => navigation.navigate('Conversation', { conversationId: item.id, otherUser })}
       >
         <Image
-          source={{ uri: otherUser?.users?.avatar_url || 'https://via.placeholder.com/50' }}
+          source={{ uri: otherUser?.avatar_url || 'https://via.placeholder.com/50' }}
           style={styles.avatar}
         />
         <View style={styles.conversationInfo}>
-          <Text style={styles.username}>{otherUser?.users?.username || 'Unknown User'}</Text>
+          <Text style={styles.username}>{otherUser?.username || 'Unknown User'}</Text>
           <Text style={styles.lastMessage} numberOfLines={1}>
             {lastMessage?.content || 'No messages yet'}
           </Text>
@@ -70,15 +87,84 @@ export default function MessagesScreen({ navigation }) {
     );
   };
 
+  const renderSearchResult = ({ item }) => {
+    return (
+      <TouchableOpacity 
+        style={styles.searchResultItem}
+        onPress={() => {
+          setShowSearch(false);
+          setSearchQuery('');
+          navigation.navigate('Conversation', { 
+            conversationId: item.id, 
+            otherUser: item 
+          });
+        }}
+      >
+        <Image
+          source={{ uri: item.avatar_url || 'https://via.placeholder.com/50' }}
+          style={styles.avatar}
+        />
+        <View style={styles.searchResultInfo}>
+          <Text style={styles.username}>{item.username}</Text>
+          <Text style={styles.userName}>{item.name}</Text>
+        </View>
+        <Ionicons name="chatbubble-outline" size={20} color="#FF6B6B" />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.headerContent}>
+        <Text style={styles.headerTitle}>Messages</Text>
+        {user && (
+          <Text style={styles.userInfo}>Your conversations</Text>
+        )}
+      </View>
+      
+      {/* Search Toggle Button */}
+      <TouchableOpacity 
+        style={styles.searchToggle}
+        onPress={() => setShowSearch(!showSearch)}
+      >
+        <Ionicons 
+          name={showSearch ? "close" : "search"} 
+          size={24} 
+          color="#FF6B6B" 
+        />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderSearchBar = () => {
+    if (!showSearch) return null;
+    
+    return (
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search users..."
+            placeholderTextColor="#999"
+            autoFocus={true}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="#999" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Messages</Text>
-          {user && (
-            <Text style={styles.userInfo}>Your conversations</Text>
-          )}
-        </View>
+        {renderHeader()}
         <View style={styles.loadingContainer}>
           <Text>Loading conversations...</Text>
         </View>
@@ -89,12 +175,7 @@ export default function MessagesScreen({ navigation }) {
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Messages</Text>
-          {user && (
-            <Text style={styles.userInfo}>Your conversations</Text>
-          )}
-        </View>
+        {renderHeader()}
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Failed to load conversations</Text>
         </View>
@@ -104,26 +185,51 @@ export default function MessagesScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Messages</Text>
-        {user && (
-          <Text style={styles.userInfo}>Your conversations</Text>
-        )}
-      </View>
+      {renderHeader()}
+      {renderSearchBar()}
       
-      {conversations && conversations.length > 0 ? (
+      {showSearch ? (
+        // Search Results
         <FlatList
-          data={conversations}
-          renderItem={renderConversation}
+          data={searchResults || []}
+          renderItem={renderSearchResult}
           keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.conversationsList}
+          contentContainerStyle={styles.searchResultsList}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptySearchContainer}>
+              {searchLoading ? (
+                <Text style={styles.emptyText}>Searching...</Text>
+              ) : searchQuery.trim() ? (
+                <Text style={styles.emptyText}>No users found</Text>
+              ) : (
+                <Text style={styles.emptyText}>Search for users to start a conversation</Text>
+              )}
+            </View>
+          }
         />
       ) : (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>No conversations yet</Text>
-          <Text style={styles.emptySubtitle}>Start a conversation with other users</Text>
-        </View>
+        // Conversations List
+        conversations && conversations.length > 0 ? (
+          <FlatList
+            data={conversations}
+            renderItem={renderConversation}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.conversationsList}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>No conversations yet</Text>
+            <Text style={styles.emptySubtitle}>Start a conversation with other users</Text>
+            <TouchableOpacity 
+              style={styles.startConversationButton}
+              onPress={() => setShowSearch(true)}
+            >
+              <Text style={styles.startConversationText}>Search Users</Text>
+            </TouchableOpacity>
+          </View>
+        )
       )}
     </SafeAreaView>
   );
@@ -136,10 +242,16 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    alignItems: 'center',
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerContent: {
+    flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 24,
@@ -150,6 +262,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginTop: 5,
+    textAlign: 'center',
+  },
+  searchToggle: {
+    padding: 5,
   },
   loadingContainer: {
     flex: 1,
@@ -238,5 +354,76 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+  searchResultsList: {
+    padding: 10,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  searchResultInfo: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  userName: {
+    fontSize: 14,
+    color: '#666',
+  },
+  startConversationButton: {
+    marginTop: 20,
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+  },
+  startConversationText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  emptySearchContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#666',
+    textAlign: 'center',
   },
 });
