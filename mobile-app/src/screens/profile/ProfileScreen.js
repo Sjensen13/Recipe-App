@@ -7,7 +7,7 @@ import { useQuery } from 'react-query';
 import { apiClient } from '../../services/api';
 
 export default function ProfileScreen({ navigation, route }) {
-  const { user, logout } = useAuth();
+  const { user, logout, clearStoredAuth } = useAuth();
   const { userId } = route?.params || {};
   const [activeTab, setActiveTab] = useState('posts');
   const [isFollowing, setIsFollowing] = useState(false);
@@ -21,7 +21,8 @@ export default function ProfileScreen({ navigation, route }) {
   const { data: profile, isLoading: profileLoading } = useQuery(
     ['profile', userId || user?.id],
     async () => {
-      const response = await apiClient.get(`/users/${userId || user?.id}`);
+      const targetUserId = userId || user?.id;
+      const response = await apiClient.get(`/users/${targetUserId}`);
       return response.data;
     },
     {
@@ -33,11 +34,15 @@ export default function ProfileScreen({ navigation, route }) {
   const { data: userPosts, isLoading: postsLoading } = useQuery(
     ['userPosts', userId || user?.id],
     async () => {
-      const response = await apiClient.get(`/users/${userId || user?.id}/posts`);
+      const targetUserId = userId || user?.id;
+      const response = await apiClient.get(`/users/${targetUserId}/posts`);
       return response.data;
     },
     {
       enabled: !!(userId || user?.id),
+      onSuccess: (data) => {
+        console.log('API userPosts:', data);
+      }
     }
   );
 
@@ -45,7 +50,33 @@ export default function ProfileScreen({ navigation, route }) {
   const { data: likedPosts, isLoading: likedPostsLoading } = useQuery(
     ['likedPosts', userId || user?.id],
     async () => {
-      const response = await apiClient.get(`/users/${userId || user?.id}/liked-posts`);
+      const targetUserId = userId || user?.id;
+      const response = await apiClient.get(`/users/${targetUserId}/liked-posts`);
+      return response.data?.data || response.data || [];
+    },
+    {
+      enabled: !!(userId || user?.id),
+    }
+  );
+
+  // Fetch user recipes (placeholder, implement API if available)
+  const { data: userRecipes, isLoading: recipesLoading } = useQuery(
+    ['userRecipes', userId || user?.id],
+    async () => {
+      const targetUserId = userId || user?.id;
+      const response = await apiClient.get(`/users/${targetUserId}/recipes`);
+      return response.data;
+    },
+    {
+      enabled: !!(userId || user?.id),
+    }
+  );
+  // Fetch saved posts/recipes (placeholder, implement API if available)
+  const { data: savedItems, isLoading: savedLoading } = useQuery(
+    ['savedItems', userId || user?.id],
+    async () => {
+      const targetUserId = userId || user?.id;
+      const response = await apiClient.get(`/users/${targetUserId}/saved`);
       return response.data;
     },
     {
@@ -55,23 +86,28 @@ export default function ProfileScreen({ navigation, route }) {
 
   // Fetch follow data
   useEffect(() => {
-    if (userId && user?.id && userId !== user?.id) {
+    if ((userId || user?.id) && user?.id) {
       fetchFollowData();
     }
   }, [userId, user?.id]);
 
+  // Log userPosts for debugging
+  console.log('User posts:', userPosts);
+
   const fetchFollowData = async () => {
     try {
+      const targetUserId = userId || user?.id;
+      
       // Check if following
-      const followResponse = await apiClient.get(`/users/${userId}/follow-status`);
+      const followResponse = await apiClient.get(`/users/${targetUserId}/follow-status`);
       setIsFollowing(followResponse.data?.isFollowing || false);
 
       // Get followers count
-      const followersResponse = await apiClient.get(`/users/${userId}/followers-count`);
+      const followersResponse = await apiClient.get(`/users/${targetUserId}/followers-count`);
       setFollowersCount(followersResponse.data?.count || 0);
 
       // Get following count
-      const followingResponse = await apiClient.get(`/users/${userId}/following-count`);
+      const followingResponse = await apiClient.get(`/users/${targetUserId}/following-count`);
       setFollowingCount(followingResponse.data?.count || 0);
     } catch (error) {
       console.error('Failed to fetch follow data:', error);
@@ -122,39 +158,61 @@ export default function ProfileScreen({ navigation, route }) {
     );
   };
 
-  const renderPost = ({ item }) => (
-    <View style={styles.postCard}>
-      <View style={styles.postHeader}>
-        <Image
-          source={{ uri: item.user?.avatar_url || 'https://via.placeholder.com/40' }}
-          style={styles.postAvatar}
-        />
-        <View style={styles.postInfo}>
-          <Text style={styles.postUsername}>{item.user?.username || 'Unknown User'}</Text>
-          <Text style={styles.postTimestamp}>{new Date(item.created_at).toLocaleDateString()}</Text>
+  const renderPost = ({ item }) => {
+    console.log('Rendering post item:', item);
+    console.log('Post user:', item.user);
+    console.log('Post image:', item.image);
+    
+    return (
+      <View style={styles.postCard}>
+        <View style={styles.postHeader}>
+          {item.user?.avatar_url ? (
+            <Image
+              source={{ uri: item.user.avatar_url }}
+              style={styles.postAvatar}
+              onError={(error) => console.log('Avatar load error:', error)}
+            />
+          ) : (
+            <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
+              <Ionicons name="person" size={20} color="#ccc" />
+            </View>
+          )}
+          <View style={styles.postInfo}>
+            <Text style={styles.postUsername}>{item.user?.username || 'Unknown User'}</Text>
+            <Text style={styles.postTimestamp}>{new Date(item.created_at).toLocaleDateString()}</Text>
+          </View>
+        </View>
+
+        {item.image ? (
+          <Image 
+            source={{ uri: item.image }} 
+            style={styles.postImage}
+            onError={(error) => console.log('Image load error:', error)}
+          />
+        ) : (
+          <View style={[styles.postImage, styles.noImagePlaceholder]}>
+            <Ionicons name="image-outline" size={40} color="#ccc" />
+            <Text style={styles.noImageText}>No image</Text>
+          </View>
+        )}
+
+        <View style={styles.postContent}>
+          <Text style={styles.postText}>{item.content}</Text>
+        </View>
+
+        <View style={styles.postActions}>
+          <View style={styles.actionButton}>
+            <Ionicons name="heart-outline" size={16} color="#666" />
+            <Text style={styles.actionText}>{item.likes_count || 0}</Text>
+          </View>
+          <View style={styles.actionButton}>
+            <Ionicons name="chatbubble-outline" size={16} color="#666" />
+            <Text style={styles.actionText}>{item.comments_count || 0}</Text>
+          </View>
         </View>
       </View>
-
-      {item.image && (
-        <Image source={{ uri: item.image }} style={styles.postImage} />
-      )}
-
-      <View style={styles.postContent}>
-        <Text style={styles.postText}>{item.content}</Text>
-      </View>
-
-      <View style={styles.postActions}>
-        <View style={styles.actionButton}>
-          <Ionicons name="heart-outline" size={16} color="#666" />
-          <Text style={styles.actionText}>{item.likes_count || 0}</Text>
-        </View>
-        <View style={styles.actionButton}>
-          <Ionicons name="chatbubble-outline" size={16} color="#666" />
-          <Text style={styles.actionText}>{item.comments_count || 0}</Text>
-        </View>
-      </View>
-    </View>
-  );
+    );
+  };
 
   const renderTabContent = () => {
     if (activeTab === 'posts') {
@@ -205,19 +263,37 @@ export default function ProfileScreen({ navigation, route }) {
     );
   }
 
-  const displayUser = profile || user;
+  // Log profile and user for debugging
+  console.log('Profile data:', profile);
+  console.log('Auth context user:', user);
+
+  // Merge user_metadata fields for display, handling nested profile.data.user
+  const userFromProfile = profile?.data?.user || {};
+  const displayUser = {
+    ...(user || {}),
+    ...(user?.user_metadata || {}),
+    ...userFromProfile,
+    ...(userFromProfile.user_metadata || {}),
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
         {isOwnProfile && (
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={24} color="#FF6B6B" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row' }}>
+            <TouchableOpacity style={styles.editButton} onPress={() => {/* TODO: Implement edit profile navigation */}}>
+              <Ionicons name="create-outline" size={24} color="#007bff" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={24} color="#FF6B6B" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.logoutButton} onPress={clearStoredAuth}>
+              <Ionicons name="refresh-outline" size={24} color="#FF9500" />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
-      
       <View style={styles.content}>
         <View style={styles.profileSection}>
           <View style={styles.avatarPlaceholder}>
@@ -227,10 +303,13 @@ export default function ProfileScreen({ navigation, route }) {
               <Ionicons name="person" size={60} color="#ccc" />
             )}
           </View>
-          
-          <Text style={styles.username}>{displayUser?.username || displayUser?.name}</Text>
-          <Text style={styles.email}>{displayUser?.email}</Text>
-          
+          <Text style={styles.name}>{displayUser?.name}</Text>
+          {displayUser?.username && (
+            <Text style={styles.handle}>@{displayUser.username}</Text>
+          )}
+          {displayUser?.bio && (
+            <Text style={styles.bio}>{displayUser.bio}</Text>
+          )}
           {!isOwnProfile && (
             <TouchableOpacity 
               style={[styles.followButton, isFollowing && styles.followingButton]} 
@@ -242,7 +321,6 @@ export default function ProfileScreen({ navigation, route }) {
             </TouchableOpacity>
           )}
         </View>
-
         <View style={styles.statsSection}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{userPosts?.length || 0}</Text>
@@ -257,7 +335,6 @@ export default function ProfileScreen({ navigation, route }) {
             <Text style={styles.statLabel}>Following</Text>
           </View>
         </View>
-
         <View style={styles.tabsContainer}>
           <TouchableOpacity 
             style={[styles.tab, activeTab === 'posts' && styles.activeTab]}
@@ -268,16 +345,43 @@ export default function ProfileScreen({ navigation, route }) {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
+            style={[styles.tab, activeTab === 'recipes' && styles.activeTab]}
+            onPress={() => setActiveTab('recipes')}
+          >
+            <Text style={[styles.tabText, activeTab === 'recipes' && styles.activeTabText]}>
+              Recipes
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
             style={[styles.tab, activeTab === 'liked' && styles.activeTab]}
             onPress={() => setActiveTab('liked')}
           >
             <Text style={[styles.tabText, activeTab === 'liked' && styles.activeTabText]}>
-              Liked
+              Likes
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'saved' && styles.activeTab]}
+            onPress={() => setActiveTab('saved')}
+          >
+            <Text style={[styles.tabText, activeTab === 'saved' && styles.activeTabText]}>
+              Saved
             </Text>
           </TouchableOpacity>
         </View>
-
-        {renderTabContent()}
+        {/* Tab Content */}
+        {activeTab === 'posts' && renderTabContent()}
+        {activeTab === 'recipes' && (
+          <View style={styles.tabContent}>
+            {recipesLoading ? <Text>Loading recipes...</Text> : <Text>{userRecipes?.length ? 'Recipes list here' : 'No recipes yet.'}</Text>}
+          </View>
+        )}
+        {activeTab === 'liked' && renderTabContent()}
+        {activeTab === 'saved' && (
+          <View style={styles.tabContent}>
+            {savedLoading ? <Text>Loading saved items...</Text> : <Text>{savedItems?.length ? 'Saved items list here' : 'No saved items yet.'}</Text>}
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -476,6 +580,43 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  name: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 2,
+  },
+  handle: {
+    fontSize: 16,
+    color: '#888',
+    marginBottom: 2,
+  },
+  bio: {
+    fontSize: 15,
+    color: '#444',
+    marginBottom: 6,
+    textAlign: 'center',
+    paddingHorizontal: 10,
+  },
+  editButton: {
+    marginRight: 10,
+    padding: 5,
+  },
+  noImagePlaceholder: {
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noImageText: {
+    color: '#ccc',
+    fontSize: 12,
+    marginTop: 5,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#f8f9fa',
     justifyContent: 'center',
     alignItems: 'center',
   },

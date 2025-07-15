@@ -23,18 +23,31 @@ export const AuthProvider = ({ children }) => {
 
   const loadStoredAuth = async () => {
     try {
-      const storedToken = await AsyncStorage.getItem('authToken');
-      const storedUser = await AsyncStorage.getItem('user');
+      // For debugging, let's not auto-load stored auth
+      // const storedToken = await AsyncStorage.getItem('authToken');
+      // const storedUser = await AsyncStorage.getItem('user');
       
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-      }
+      // if (storedToken && storedUser) {
+      //   setToken(storedToken);
+      //   setUser(JSON.parse(storedUser));
+      //   apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      // }
     } catch (error) {
       console.error('Error loading stored auth:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const clearStoredAuth = async () => {
+    try {
+      await AsyncStorage.removeItem('authToken');
+      await AsyncStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
+      delete apiClient.defaults.headers.common['Authorization'];
+    } catch (error) {
+      console.error('Error clearing stored auth:', error);
     }
   };
 
@@ -141,6 +154,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUser,
+    clearStoredAuth,
     isAuthenticated: !!token,
   };
 

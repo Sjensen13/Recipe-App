@@ -528,9 +528,32 @@ const getLikedPosts = async (req, res) => {
       });
     }
 
+    // Transform posts for frontend expectations
+    const transformedPosts = (posts || []).map(post => {
+      console.log('Liked post original:', post);
+      console.log('Liked post users:', post.users);
+      console.log('Liked post image_url:', post.image_url);
+      
+      // Ensure user data exists, if not create a fallback
+      const userData = post.users || {
+        id: post.user_id,
+        username: 'Unknown User',
+        name: 'Unknown User',
+        avatar_url: null
+      };
+      
+      return {
+        ...post,
+        user: userData,
+        image: post.image_url,
+        likes_count: post.likes?.length || 0,
+        comments_count: post.comments?.length || 0
+      };
+    });
+
     res.json({
       success: true,
-      data: posts || []
+      data: transformedPosts
     });
   } catch (error) {
     console.error('Get liked posts error:', error);
@@ -538,6 +561,159 @@ const getLikedPosts = async (req, res) => {
       success: false,
       message: 'Internal server error'
     });
+  }
+};
+
+// Test endpoint to check database schema
+const testDatabaseSchema = async (req, res) => {
+  try {
+    // Test users table
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('*')
+      .limit(5);
+
+    // Test posts table
+    const { data: posts, error: postsError } = await supabase
+      .from('posts')
+      .select('*')
+      .limit(5);
+
+    // Test posts with user join
+    const { data: postsWithUsers, error: postsWithUsersError } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        users!posts_user_id_fkey (
+          id,
+          username,
+          name,
+          avatar_url
+        )
+      `)
+      .limit(5);
+
+    res.json({
+      success: true,
+      data: {
+        users: users || [],
+        posts: posts || [],
+        postsWithUsers: postsWithUsers || [],
+        errors: {
+          users: usersError,
+          posts: postsError,
+          postsWithUsers: postsWithUsersError
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Database schema test error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Followers count endpoint
+const getFollowersCount = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+    const { count, error } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('following_id', userId);
+    if (error) {
+      console.error('Followers count error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to get followers count' });
+    }
+    res.json({ count: count || 0 });
+  } catch (error) {
+    console.error('Get followers count error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Following count endpoint
+const getFollowingCount = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+    const { count, error } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('follower_id', userId);
+    if (error) {
+      console.error('Following count error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to get following count' });
+    }
+    res.json({ count: count || 0 });
+  } catch (error) {
+    console.error('Get following count error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Get all posts by user
+const getPostsByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+    // Use supabase to fetch posts for this user
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        users!posts_user_id_fkey (
+          id,
+          username,
+          name,
+          avatar_url
+        ),
+        likes (id, user_id),
+        comments (id, content, created_at, users!comments_user_id_fkey (username, name))
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Error fetching user posts:', error);
+      return res.status(500).json({ success: false, message: 'Failed to fetch user posts' });
+    }
+    // Transform posts for frontend expectations
+    const transformedPosts = (posts || []).map(post => {
+      console.log('Original post:', post);
+      console.log('Post users:', post.users);
+      console.log('Post image_url:', post.image_url);
+      
+      // Ensure user data exists, if not create a fallback
+      const userData = post.users || {
+        id: post.user_id,
+        username: 'Unknown User',
+        name: 'Unknown User',
+        avatar_url: null
+      };
+      
+      return {
+        ...post,
+        user: userData,
+        image: post.image_url,
+        likes_count: post.likes?.length || 0,
+        comments_count: post.comments?.length || 0
+      };
+    });
+    console.log('Transformed posts:', transformedPosts);
+    res.json(transformedPosts);
+  } catch (error) {
+    console.error('Get posts by user error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -550,5 +726,9 @@ module.exports = {
   getFollowersList,
   getFollowingList,
   checkIsFollowing,
-  getLikedPosts
+  getLikedPosts,
+  getFollowersCount,
+  getFollowingCount,
+  getPostsByUserId,
+  testDatabaseSchema
 }; 

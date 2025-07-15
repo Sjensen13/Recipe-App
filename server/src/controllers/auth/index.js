@@ -191,29 +191,41 @@ const login = async (req, res) => {
       });
     }
 
-    // For development with mock Supabase, allow any email/password combination
-    // In production, this would use real Supabase authentication
-    const mockUser = {
-      id: '74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f',
-      email: email,
-      username: email.split('@')[0], // Use email prefix as username
-      name: email.split('@')[0],
-      user_metadata: {
-        username: email.split('@')[0],
-        name: email.split('@')[0]
-      },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    // Use Supabase Auth to sign in
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      return res.status(401).json({ success: false, message: error.message });
+    }
 
-    // Generate a mock JWT token
-    const mockToken = `mock_jwt_token_${Date.now()}`;
+    // Get user profile from your users table
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError) {
+      return res.status(500).json({ success: false, message: 'Failed to fetch user profile' });
+    }
+
+    // Always use Auth user as source of truth for username and name
+    const user = {
+      id: data.user.id,
+      email: data.user.email,
+      username: data.user.user_metadata?.username || profile?.username,
+      name: data.user.user_metadata?.name || profile?.name,
+      avatar_url: data.user.user_metadata?.avatar_url || profile?.avatar_url || null,
+      bio: data.user.user_metadata?.bio || profile?.bio || null,
+      created_at: data.user.created_at || profile?.created_at,
+      updated_at: data.user.updated_at || profile?.updated_at,
+      // add any other fields you want to expose
+    };
 
     res.json({
       success: true,
       message: 'Login successful',
-      token: mockToken,
-      user: mockUser
+      token: data.session.access_token,
+      user
     });
   } catch (error) {
     console.error('Login error:', error);
