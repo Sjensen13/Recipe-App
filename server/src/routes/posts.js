@@ -7,8 +7,11 @@ const {
   updatePost,
   deletePost,
   likePost,
-  addComment
+  addComment,
+  getComments
 } = require('../controllers/posts');
+
+console.log('Posts router loaded');
 
 const router = express.Router();
 
@@ -17,6 +20,9 @@ router.use(authenticateToken);
 
 // Get all posts (with optional pagination and user filtering)
 router.get('/', getPosts);
+
+// Get comments for a post
+router.get('/:id/comments', getComments);
 
 // Get single post by ID
 router.get('/:id', getPost);

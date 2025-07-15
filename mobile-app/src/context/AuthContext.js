@@ -92,6 +92,9 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.setItem('authToken', authToken);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
 
+      // Log the token after setting it
+      console.log('JWT TOKEN:', authToken);
+
       console.log('[Mobile Auth] Login successful');
       return userData;
     } catch (error) {

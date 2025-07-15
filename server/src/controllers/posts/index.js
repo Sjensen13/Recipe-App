@@ -447,6 +447,37 @@ const addComment = async (req, res) => {
   res.status(201).json({ success: true, comment });
 };
 
+// Get comments for a post
+const getComments = async (req, res) => {
+  const supabase = getSupabase();
+  const postId = req.params.id;
+  try {
+    const { data: comments, error } = await supabase
+      .from('comments')
+      .select(`
+        id,
+        content,
+        created_at,
+        user_id,
+        users!comments_user_id_fkey (
+          username,
+          name,
+          avatar_url
+        )
+      `)
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      return res.status(500).json({ success: false, message: 'Failed to fetch comments' });
+    }
+
+    res.json(comments || []);
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getPosts,
   getPost,
@@ -454,5 +485,6 @@ module.exports = {
   updatePost,
   deletePost,
   likePost,
-  addComment
+  addComment,
+  getComments
 }; 

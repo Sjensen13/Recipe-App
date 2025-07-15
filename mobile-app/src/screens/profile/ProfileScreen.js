@@ -158,11 +158,37 @@ export default function ProfileScreen({ navigation, route }) {
     );
   };
 
+  // Add state for local like toggling and like counts
+  const [likeLoading, setLikeLoading] = useState(false);
+  const [likedPostsState, setLikedPosts] = useState({}); // { [postId]: true/false }
+  const [likeCounts, setLikeCounts] = useState({}); // { [postId]: number }
+
+  // Like handler
+  const handleLike = async (postId, currentCount, currentlyLiked) => {
+    if (likeLoading) return;
+    setLikeLoading(true);
+    try {
+      await apiClient.post(`/posts/${postId}/like`); // Always use POST for toggling like
+      setLikedPosts((prev) => ({ ...prev, [postId]: !currentlyLiked }));
+      setLikeCounts((prev) => ({
+        ...prev,
+        [postId]: currentlyLiked ? Math.max((prev[postId] ?? currentCount) - 1, 0) : (prev[postId] ?? currentCount) + 1
+      }));
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update like');
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  // Comment handler
+  const handleComment = (postId) => {
+    navigation.navigate('PostDetail', { postId });
+  };
+
   const renderPost = ({ item }) => {
-    console.log('Rendering post item:', item);
-    console.log('Post user:', item.user);
-    console.log('Post image:', item.image);
-    
+    const isLiked = likedPostsState[item.id] !== undefined ? likedPostsState[item.id] : item.liked;
+    const likesCount = likeCounts[item.id] !== undefined ? likeCounts[item.id] : item.likes_count || 0;
     return (
       <View style={styles.postCard}>
         <View style={styles.postHeader}>
@@ -201,14 +227,27 @@ export default function ProfileScreen({ navigation, route }) {
         </View>
 
         <View style={styles.postActions}>
-          <View style={styles.actionButton}>
-            <Ionicons name="heart-outline" size={16} color="#666" />
-            <Text style={styles.actionText}>{item.likes_count || 0}</Text>
-          </View>
-          <View style={styles.actionButton}>
-            <Ionicons name="chatbubble-outline" size={16} color="#666" />
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleLike(item.id, likesCount, isLiked)}
+            disabled={likeLoading}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isLiked ? 'heart' : 'heart-outline'}
+              size={24}
+              color={isLiked ? '#FF6B6B' : '#666'}
+            />
+            <Text style={styles.actionText}>{likesCount}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleComment(item.id)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chatbubble-outline" size={24} color="#666" />
             <Text style={styles.actionText}>{item.comments_count || 0}</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -564,6 +603,9 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 8, // Increased touch area
+    paddingHorizontal: 12, // Increased touch area
+    borderRadius: 8,
   },
   actionText: {
     fontSize: 14,
