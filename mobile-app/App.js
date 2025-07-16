@@ -18,6 +18,7 @@ import CreatePostScreen from './src/screens/post/CreatePostScreen';
 import PostDetailScreen from './src/screens/post/PostDetailScreen';
 import RecipeSearchScreen from './src/screens/recipe/RecipeSearchScreen';
 import CreateRecipeScreen from './src/screens/recipe/CreateRecipeScreen';
+import RecipeDetailScreen from './src/screens/recipe/RecipeDetailScreen';
 import ConversationScreen from './src/screens/messaging/ConversationScreen';
 
 // Import contexts
@@ -87,6 +88,7 @@ export default function App() {
                   <Stack.Screen name="PostDetail" component={PostDetailScreen} />
                   <Stack.Screen name="RecipeSearch" component={RecipeSearchScreen} />
                   <Stack.Screen name="CreateRecipe" component={CreateRecipeScreen} />
+                  <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
                   <Stack.Screen 
                     name="Conversation" 
                     component={ConversationScreen}

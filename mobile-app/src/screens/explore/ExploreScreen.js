@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -14,7 +14,7 @@ export default function ExploreScreen({ navigation }) {
   const { data: searchResults, isLoading, refetch } = useQuery(
     ['search', searchQuery, activeTab],
     async () => {
-      if (!searchQuery.trim()) return { posts: [], users: [] };
+      if (!searchQuery.trim()) return { posts: [], users: [], recipes: [], hashtags: [] };
       
       const response = await apiClient.get('/search', {
         params: {
@@ -26,6 +26,17 @@ export default function ExploreScreen({ navigation }) {
     },
     {
       enabled: !!searchQuery.trim(),
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const { data: popularHashtags } = useQuery(
+    'popularHashtags',
+    async () => {
+      const response = await apiClient.get('/search/popular-hashtags');
+      return response.data;
+    },
+    {
       refetchOnWindowFocus: false,
     }
   );
@@ -55,6 +66,16 @@ export default function ExploreScreen({ navigation }) {
     navigation.navigate('PostDetail', { postId });
   };
 
+  const handleRecipeClick = (recipeId) => {
+    navigation.navigate('RecipeDetail', { recipeId });
+  };
+
+  const handleHashtagClick = (hashtag) => {
+    setSearchQuery(hashtag);
+    setActiveTab('hashtags');
+    refetch();
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -82,11 +103,11 @@ export default function ExploreScreen({ navigation }) {
           onPress={() => handleProfileClick(item.user_id)}
         >
           <Image
-            source={{ uri: item.user?.avatar_url || 'https://via.placeholder.com/40' }}
+            source={{ uri: item.users?.avatar_url || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
           />
           <View style={styles.userDetails}>
-            <Text style={styles.username}>{item.user?.username || 'Unknown User'}</Text>
+            <Text style={styles.username}>{item.users?.username || 'Unknown User'}</Text>
             <Text style={styles.timestamp}>{formatDate(item.created_at)}</Text>
           </View>
         </TouchableOpacity>
@@ -97,17 +118,26 @@ export default function ExploreScreen({ navigation }) {
       )}
 
       <View style={styles.postContent}>
+        <Text style={styles.postTitle}>{item.title}</Text>
         <Text style={styles.postText}>{item.content}</Text>
       </View>
+
+      {item.hashtags && item.hashtags.length > 0 && (
+        <View style={styles.hashtagsContainer}>
+          {item.hashtags.map((tag, index) => (
+            <Text key={index} style={styles.hashtag}>#{tag}</Text>
+          ))}
+        </View>
+      )}
 
       <View style={styles.postActions}>
         <View style={styles.actionButton}>
           <Ionicons name="heart-outline" size={16} color="#666" />
-          <Text style={styles.actionText}>{item.likes_count || 0}</Text>
+          <Text style={styles.actionText}>{item.likes?.length || 0}</Text>
         </View>
         <View style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={16} color="#666" />
-          <Text style={styles.actionText}>{item.comments_count || 0}</Text>
+          <Text style={styles.actionText}>{item.comments?.length || 0}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -124,9 +154,37 @@ export default function ExploreScreen({ navigation }) {
       />
       <View style={styles.userInfo}>
         <Text style={styles.userName}>{item.username || item.name}</Text>
-        <Text style={styles.userEmail}>{item.email}</Text>
+        <Text style={styles.userBio}>{item.bio || 'No bio available'}</Text>
       </View>
       <Ionicons name="chevron-forward" size={20} color="#ccc" />
+    </TouchableOpacity>
+  );
+
+  const renderRecipe = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.recipeCard}
+      onPress={() => handleRecipeClick(item.id)}
+    >
+      <View style={styles.recipeHeader}>
+        <Text style={styles.recipeTitle}>{item.title}</Text>
+        <Text style={styles.recipeDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
+      </View>
+      <View style={styles.recipeMeta}>
+        <Text style={styles.recipeTime}>{item.cooking_time} min</Text>
+        <Text style={styles.recipeDifficulty}>{item.difficulty}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderHashtag = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.hashtagCard}
+      onPress={() => handleHashtagClick(item.tag)}
+    >
+      <Text style={styles.hashtagText}>#{item.tag}</Text>
+      <Text style={styles.hashtagCount}>{item.count} posts</Text>
     </TouchableOpacity>
   );
 
@@ -135,7 +193,8 @@ export default function ExploreScreen({ navigation }) {
       if (isLoading) {
         return (
           <View style={styles.centerContainer}>
-            <Text>Searching...</Text>
+            <ActivityIndicator size="large" color="#FF6B6B" />
+            <Text style={styles.loadingText}>Searching...</Text>
           </View>
         );
       }
@@ -145,6 +204,7 @@ export default function ExploreScreen({ navigation }) {
       if (results.length === 0) {
         return (
           <View style={styles.centerContainer}>
+            <Ionicons name="search-outline" size={48} color="#ccc" />
             <Text style={styles.noResultsText}>No {activeTab} found for "{searchQuery}"</Text>
           </View>
         );
@@ -153,42 +213,77 @@ export default function ExploreScreen({ navigation }) {
       return (
         <FlatList
           data={results}
-          renderItem={activeTab === 'posts' ? renderPost : renderUser}
-          keyExtractor={(item) => item.id.toString()}
+          renderItem={
+            activeTab === 'recipes' ? renderRecipe :
+            activeTab === 'posts' ? renderPost :
+            activeTab === 'users' ? renderUser :
+            renderHashtag
+          }
+          keyExtractor={(item) => item.id?.toString() || item.tag}
           contentContainerStyle={styles.resultsList}
           showsVerticalScrollIndicator={false}
         />
       );
-    } else {
-      // Show popular posts when no search query
-      return (
-        <View style={styles.popularSection}>
-          <Text style={styles.sectionTitle}>Popular Posts</Text>
-          {popularPosts && popularPosts.length > 0 ? (
-            <FlatList
-              data={popularPosts}
-              renderItem={renderPost}
-              keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.resultsList}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <View style={styles.centerContainer}>
-              <Text>No popular posts yet</Text>
-            </View>
-          )}
-        </View>
-      );
     }
+
+    // Show popular hashtags and posts when no search query
+    return (
+      <ScrollView style={styles.suggestionsContainer} showsVerticalScrollIndicator={false}>
+        {popularHashtags && popularHashtags.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Popular Hashtags</Text>
+            <View style={styles.hashtagsGrid}>
+              {popularHashtags.slice(0, 10).map((hashtag, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.popularHashtag}
+                  onPress={() => handleHashtagClick(hashtag.tag)}
+                >
+                  <Text style={styles.popularHashtagText}>#{hashtag.tag}</Text>
+                  <Text style={styles.popularHashtagCount}>{hashtag.count}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {popularPosts && popularPosts.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Popular Posts</Text>
+            {popularPosts.map((post, index) => (
+              <View key={index}>
+                {renderPost({ item: post })}
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.centerContainer}>
+          <Ionicons name="search-outline" size={48} color="#ccc" />
+          <Text style={styles.suggestionText}>Start searching to discover content</Text>
+          <Text style={styles.suggestionSubtext}>
+            Search for recipes, posts, users, or hashtags to get started
+          </Text>
+        </View>
+      </ScrollView>
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Explore</Text>
-        {user && (
-          <Text style={styles.userInfo}>Discover new content</Text>
-        )}
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Explore</Text>
+          {user && (
+            <Text style={styles.userInfo}>Discover new content</Text>
+          )}
+        </View>
+        <TouchableOpacity 
+          style={styles.searchButton}
+          onPress={() => navigation.navigate('RecipeSearch')}
+        >
+          <Ionicons name="restaurant" size={24} color="#FF6B6B" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
@@ -196,7 +291,7 @@ export default function ExploreScreen({ navigation }) {
           <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search posts, users, or hashtags..."
+            placeholder="Search posts, users, recipes, or hashtags..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearch}
@@ -216,6 +311,7 @@ export default function ExploreScreen({ navigation }) {
             style={[styles.tab, activeTab === 'posts' && styles.activeTab]}
             onPress={() => setActiveTab('posts')}
           >
+            <Ionicons name="document-text" size={16} color={activeTab === 'posts' ? '#fff' : '#666'} />
             <Text style={[styles.tabText, activeTab === 'posts' && styles.activeTabText]}>
               Posts
             </Text>
@@ -224,8 +320,27 @@ export default function ExploreScreen({ navigation }) {
             style={[styles.tab, activeTab === 'users' && styles.activeTab]}
             onPress={() => setActiveTab('users')}
           >
+            <Ionicons name="people" size={16} color={activeTab === 'users' ? '#fff' : '#666'} />
             <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>
               Users
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'recipes' && styles.activeTab]}
+            onPress={() => setActiveTab('recipes')}
+          >
+            <Ionicons name="restaurant" size={16} color={activeTab === 'recipes' ? '#fff' : '#666'} />
+            <Text style={[styles.tabText, activeTab === 'recipes' && styles.activeTabText]}>
+              Recipes
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'hashtags' && styles.activeTab]}
+            onPress={() => setActiveTab('hashtags')}
+          >
+            <Ionicons name="hash" size={16} color={activeTab === 'hashtags' ? '#fff' : '#666'} />
+            <Text style={[styles.tabText, activeTab === 'hashtags' && styles.activeTabText]}>
+              Hashtags
             </Text>
           </TouchableOpacity>
         </View>
@@ -243,10 +358,19 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  headerLeft: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  searchButton: {
+    padding: 8,
   },
   headerTitle: {
     fontSize: 24,
@@ -286,18 +410,21 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 10,
-    marginHorizontal: 5,
+    marginHorizontal: 2,
     borderRadius: 20,
   },
   activeTab: {
     backgroundColor: '#FF6B6B',
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
     fontWeight: '500',
+    marginLeft: 5,
   },
   activeTabText: {
     color: '#fff',
@@ -308,20 +435,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+  },
   noResultsText: {
     fontSize: 18,
     color: '#666',
     textAlign: 'center',
+    marginTop: 10,
   },
-  popularSection: {
+  suggestionsContainer: {
     flex: 1,
   },
+  section: {
+    backgroundColor: '#fff',
+    marginBottom: 10,
+    padding: 15,
+  },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    padding: 15,
-    backgroundColor: '#fff',
+    marginBottom: 15,
+  },
+  hashtagsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  popularHashtag: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  popularHashtagText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  popularHashtagCount: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 5,
+  },
+  suggestionText: {
+    fontSize: 18,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  suggestionSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 5,
   },
   resultsList: {
     padding: 10,
@@ -374,9 +546,29 @@ const styles = StyleSheet.create({
   postContent: {
     marginBottom: 10,
   },
+  postTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
   postText: {
     fontSize: 16,
     color: '#333',
+  },
+  hashtagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+    marginBottom: 10,
+  },
+  hashtag: {
+    fontSize: 12,
+    color: '#FF6B6B',
+    backgroundColor: '#fff0f0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
   },
   postActions: {
     flexDirection: 'row',
@@ -417,7 +609,66 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 5,
   },
-  userEmail: {
+  userBio: {
+    fontSize: 14,
+    color: '#666',
+  },
+  recipeCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  recipeHeader: {
+    marginBottom: 10,
+  },
+  recipeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  recipeDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  recipeMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  recipeTime: {
+    fontSize: 12,
+    color: '#999',
+  },
+  recipeDifficulty: {
+    fontSize: 12,
+    color: '#999',
+  },
+  hashtagCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  hashtagText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+  },
+  hashtagCount: {
     fontSize: 14,
     color: '#666',
   },
