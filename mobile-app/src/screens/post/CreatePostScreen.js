@@ -8,6 +8,7 @@ import { apiClient } from '../../services/api';
 
 export default function CreatePostScreen({ navigation }) {
   const { user } = useAuth();
+  const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [image, setImage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,43 +69,91 @@ export default function CreatePostScreen({ navigation }) {
     setImage(null);
   };
 
+  const uploadImage = async () => {
+    if (!image) return null;
+
+    const formData = new FormData();
+    formData.append('image', {
+      uri: image.uri,
+      type: 'image/jpeg',
+      name: 'post-image.jpg',
+    });
+    formData.append('type', 'post');
+
+    try {
+      const response = await apiClient.post('/upload/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        return response.data.data.url;
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error('Image upload error:', error);
+      throw new Error('Failed to upload image');
+    }
+  };
+
+  const extractHashtags = (content) => {
+    const hashtagRegex = /#(\w+)/g;
+    const matches = content.match(hashtagRegex);
+    return matches ? matches.map(tag => tag.slice(1)) : [];
+  };
+
   const handleSubmit = async () => {
-    if (!content.trim() && !image) {
-      Alert.alert('Error', 'Please add some content or an image to your post');
+    if (!title.trim() || !content.trim()) {
+      Alert.alert('Error', 'Title and content are required');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData();
-      formData.append('content', content.trim());
-
+      let imageUrl = null;
+      
+      // Upload image first if selected
       if (image) {
-        const imageFile = {
-          uri: image.uri,
-          type: 'image/jpeg',
-          name: 'post-image.jpg',
-        };
-        formData.append('image', imageFile);
+        try {
+          imageUrl = await uploadImage();
+        } catch (error) {
+          Alert.alert('Error', 'Failed to upload image. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
       }
 
-      await apiClient.post('/posts', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Extract hashtags from content
+      const hashtags = extractHashtags(content);
 
-      Alert.alert('Success', 'Post created successfully!', [
-        {
-          text: 'OK',
-          onPress: () => {
-            setContent('');
-            setImage(null);
-            navigation.goBack();
+      // Create post
+      const postData = {
+        title: title.trim(),
+        content: content.trim(),
+        image_url: imageUrl,
+        hashtags: hashtags
+      };
+
+      const response = await apiClient.post('/posts', postData);
+
+      if (response.data.success) {
+        Alert.alert('Success', 'Post created successfully!', [
+          {
+            text: 'OK',
+            onPress: () => {
+              setTitle('');
+              setContent('');
+              setImage(null);
+              navigation.goBack();
+            },
           },
-        },
-      ]);
+        ]);
+      } else {
+        throw new Error('Failed to create post');
+      }
     } catch (error) {
       console.error('Error creating post:', error);
       Alert.alert('Error', 'Failed to create post. Please try again.');
@@ -113,7 +162,7 @@ export default function CreatePostScreen({ navigation }) {
     }
   };
 
-  const canSubmit = content.trim().length > 0 || image;
+  const canSubmit = title.trim().length > 0 && content.trim().length > 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -145,9 +194,19 @@ export default function CreatePostScreen({ navigation }) {
           <Text style={styles.username}>{user?.username || user?.name}</Text>
         </View>
 
+        {/* Title Input */}
+        <TextInput
+          style={styles.titleInput}
+          placeholder="Enter your post title..."
+          value={title}
+          onChangeText={setTitle}
+          maxLength={100}
+        />
+
+        {/* Content Input */}
         <TextInput
           style={styles.textInput}
-          placeholder="What's on your mind?"
+          placeholder="Share your thoughts, recipe, or story... Use #hashtags to categorize your post!"
           value={content}
           onChangeText={setContent}
           multiline
@@ -191,15 +250,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomWidth: 2,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fafafa',
   },
   cancelButton: {
-    padding: 5,
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#f8f8f8',
   },
   cancelButtonText: {
     fontSize: 16,
     color: '#666',
+    fontWeight: '500',
   },
   headerTitle: {
     fontSize: 18,
@@ -209,11 +274,21 @@ const styles = StyleSheet.create({
   submitButton: {
     backgroundColor: '#FF6B6B',
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#FF6B6B',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   submitButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#f0f0f0',
+    borderColor: '#ddd',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   submitButtonText: {
     color: '#fff',
@@ -231,17 +306,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
     marginRight: 10,
+    borderWidth: 2,
+    borderColor: '#FF6B6B',
   },
   username: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
+  },
+  titleInput: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginBottom: 15,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   textInput: {
     fontSize: 18,
@@ -249,15 +348,35 @@ const styles = StyleSheet.create({
     minHeight: 120,
     textAlignVertical: 'top',
     marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   imageContainer: {
     position: 'relative',
     marginBottom: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   selectedImage: {
     width: '100%',
     height: 200,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   removeImageButton: {
     position: 'absolute',
@@ -265,25 +384,50 @@ const styles = StyleSheet.create({
     right: 10,
     backgroundColor: '#fff',
     borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   actionsContainer: {
     marginBottom: 20,
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   actionButtonText: {
     marginLeft: 10,
     fontSize: 16,
     color: '#FF6B6B',
+    fontWeight: '500',
   },
   characterCount: {
     alignItems: 'flex-end',
+    paddingHorizontal: 5,
   },
   characterCountText: {
     fontSize: 12,
     color: '#666',
+    fontWeight: '500',
   },
 });
