@@ -113,12 +113,10 @@ export default function HomeScreen({ navigation, route }) {
     }
   };
 
-  // Handler for hashtag clicks - navigate to explore screen
+  // Handler for hashtag clicks - navigate to home screen with hashtag filter
   const handleHashtagClick = (hashtag) => {
-    navigation.navigate('Explore', { 
-      hashtag: hashtag,
-      searchQuery: hashtag,
-      activeTab: 'hashtags'
+    navigation.navigate('Home', { 
+      hashtag: hashtag
     });
   };
 
