@@ -23,15 +23,14 @@ export const AuthProvider = ({ children }) => {
 
   const loadStoredAuth = async () => {
     try {
-      // For debugging, let's not auto-load stored auth
-      // const storedToken = await AsyncStorage.getItem('authToken');
-      // const storedUser = await AsyncStorage.getItem('user');
+      const storedToken = await AsyncStorage.getItem('authToken');
+      const storedUser = await AsyncStorage.getItem('user');
       
-      // if (storedToken && storedUser) {
-      //   setToken(storedToken);
-      //   setUser(JSON.parse(storedUser));
-      //   apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-      // }
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      }
     } catch (error) {
       console.error('Error loading stored auth:', error);
     } finally {

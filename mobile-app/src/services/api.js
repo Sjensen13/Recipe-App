@@ -12,7 +12,10 @@ export const apiClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    // Token will be added by AuthContext
+    // Add mock token for development if no auth token is present
+    if (!config.headers.Authorization) {
+      config.headers.Authorization = 'Bearer mock_jwt_token_development';
+    }
     return config;
   },
   (error) => {

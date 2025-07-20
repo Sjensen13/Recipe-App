@@ -44,8 +44,8 @@ function TabNavigator() {
             iconName = focused ? 'search' : 'search-outline';
           } else if (route.name === 'Create') {
             iconName = focused ? 'add-circle' : 'add-circle-outline';
-          } else if (route.name === 'Messages') {
-            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
+          } else if (route.name === 'RecipeSearch') {
+            iconName = focused ? 'restaurant' : 'restaurant-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -57,11 +57,11 @@ function TabNavigator() {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Explore" component={ExploreScreen} />
-      <Tab.Screen name="Create" component={CreatePostScreen} />
-      <Tab.Screen name="Messages" component={MessagesScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
+      <Tab.Screen name="Explore" component={ExploreScreen} options={{ title: 'Explore' }} />
+      <Tab.Screen name="Create" component={CreatePostScreen} options={{ title: 'Create' }} />
+      <Tab.Screen name="RecipeSearch" component={RecipeSearchScreen} options={{ title: 'Recipes' }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );
 }
@@ -85,6 +85,7 @@ export default function App() {
                   <Stack.Screen name="Register" component={RegisterScreen} />
                   <Stack.Screen name="MainApp" component={TabNavigator} />
                   <Stack.Screen name="Notifications" component={NotificationsScreen} />
+                  <Stack.Screen name="Messages" component={MessagesScreen} />
                   <Stack.Screen name="PostDetail" component={PostDetailScreen} />
                   <Stack.Screen name="RecipeSearch" component={RecipeSearchScreen} />
                   <Stack.Screen name="CreateRecipe" component={CreateRecipeScreen} />

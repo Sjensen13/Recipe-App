@@ -24,22 +24,6 @@ export default function RecipeSearchScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('recipes');
   const [searchMode, setSearchMode] = useState('name'); // 'name' or 'ingredients'
 
-  // Set navigation header
-  React.useEffect(() => {
-    navigation.setOptions({
-      title: 'Search',
-      headerBackTitle: 'Back',
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: '#fff',
-      },
-      headerTintColor: '#333',
-      headerTitleStyle: {
-        fontWeight: 'bold',
-      },
-    });
-  }, [navigation]);
-
   // Search results query
   const { data: searchResults, isLoading, refetch } = useQuery(
     ['search', searchQuery, activeTab],
@@ -255,6 +239,20 @@ export default function RecipeSearchScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Custom Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Recipe Search</Text>
+          <Text style={styles.headerSubtitle}>Find delicious recipes</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={() => navigation.navigate('CreateRecipe')}
+        >
+          <Ionicons name="add-circle-outline" size={24} color="#FF6B6B" />
+        </TouchableOpacity>
+      </View>
+
       {/* Search Mode Tabs */}
       <View style={styles.searchModeContainer}>
         <TouchableOpacity 
@@ -338,7 +336,7 @@ export default function RecipeSearchScreen({ navigation }) {
             style={[styles.tab, activeTab === 'hashtags' && styles.activeTab]}
             onPress={() => setActiveTab('hashtags')}
           >
-            <Ionicons name="hash" size={16} color={activeTab === 'hashtags' ? '#fff' : '#666'} />
+            <Ionicons name="pricetag" size={16} color={activeTab === 'hashtags' ? '#fff' : '#666'} />
             <Text style={[styles.tabText, activeTab === 'hashtags' && styles.activeTabText]}>
               Hashtags
             </Text>
@@ -355,6 +353,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  headerButton: {
+    padding: 5,
   },
   searchModeContainer: {
     flexDirection: 'row',

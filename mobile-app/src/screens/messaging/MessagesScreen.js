@@ -115,6 +115,13 @@ export default function MessagesScreen({ navigation }) {
 
   const renderHeader = () => (
     <View style={styles.header}>
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Ionicons name="arrow-back" size={24} color="#FF6B6B" />
+      </TouchableOpacity>
+      
       <View style={styles.headerContent}>
         <Text style={styles.headerTitle}>Messages</Text>
         {user && (
@@ -251,7 +258,7 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   headerTitle: {
     fontSize: 24,
@@ -262,7 +269,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginTop: 5,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   searchToggle: {
     padding: 5,
@@ -425,5 +432,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#666',
     textAlign: 'center',
+  },
+  backButton: {
+    padding: 5,
   },
 });

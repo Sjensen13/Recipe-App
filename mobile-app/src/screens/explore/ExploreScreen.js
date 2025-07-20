@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,10 +6,18 @@ import { useAuth } from '../../context/AuthContext';
 import { useQuery } from 'react-query';
 import { apiClient } from '../../services/api';
 
-export default function ExploreScreen({ navigation }) {
+export default function ExploreScreen({ navigation, route }) {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('posts');
+
+  // Handle route parameters for hashtag filtering
+  useEffect(() => {
+    if (route.params?.hashtag) {
+      setSearchQuery(route.params.hashtag);
+      setActiveTab(route.params.activeTab || 'hashtags');
+    }
+  }, [route.params]);
 
   const { data: searchResults, isLoading, refetch } = useQuery(
     ['search', searchQuery, activeTab],
@@ -338,7 +346,7 @@ export default function ExploreScreen({ navigation }) {
             style={[styles.tab, activeTab === 'hashtags' && styles.activeTab]}
             onPress={() => setActiveTab('hashtags')}
           >
-            <Ionicons name="hash" size={16} color={activeTab === 'hashtags' ? '#fff' : '#666'} />
+            <Ionicons name="pricetag" size={16} color={activeTab === 'hashtags' ? '#fff' : '#666'} />
             <Text style={[styles.tabText, activeTab === 'hashtags' && styles.activeTabText]}>
               Hashtags
             </Text>

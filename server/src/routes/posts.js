@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateToken } = require('../middleware/auth/auth');
+const { optionalAuth } = require('../middleware/auth');
 const {
   getPosts,
   getPost,
@@ -15,8 +15,8 @@ console.log('Posts router loaded');
 
 const router = express.Router();
 
-// Apply authentication middleware to all routes
-router.use(authenticateToken);
+// Apply optional authentication middleware to all routes
+router.use(optionalAuth);
 
 // Get all posts (with optional pagination and user filtering)
 router.get('/', getPosts);
