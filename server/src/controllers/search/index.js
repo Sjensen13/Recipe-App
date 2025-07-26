@@ -294,6 +294,23 @@ const generalSearch = async (req, res) => {
       }
     }
 
+    // Search recipes if type is 'all' or 'recipes'
+    if (type === 'all' || type === 'recipes') {
+      const { data: recipes, error: recipesError } = await supabase
+        .from('recipes')
+        .select('*')
+        .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,ingredients.ilike.%${searchTerm}%`)
+        .order('created_at', { ascending: false })
+        .range(0, limit - 1);
+
+      if (!recipesError) {
+        results.recipes = recipes || [];
+      } else {
+        console.error('Error searching recipes:', recipesError);
+        results.recipes = [];
+      }
+    }
+
     res.json({
       success: true,
       data: results,

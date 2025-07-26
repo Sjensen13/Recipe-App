@@ -21,22 +21,21 @@ import { apiClient } from '../../services/api';
 export default function RecipeSearchScreen({ navigation }) {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('recipes');
   const [searchMode, setSearchMode] = useState('name'); // 'name' or 'ingredients'
 
-  // Search results query
+  // Search results query - only search recipes
   const { data: searchResults, isLoading, refetch } = useQuery(
-    ['search', searchQuery, activeTab],
+    ['recipeSearch', searchQuery, searchMode],
     async () => {
-      if (!searchQuery.trim()) return { recipes: [], posts: [], users: [], hashtags: [] };
+      if (!searchQuery.trim()) return { recipes: [] };
       
-      const response = await apiClient.get('/search', {
+      // Use the recipes endpoint with search parameter (same as web client)
+      const response = await apiClient.get('/recipes', {
         params: {
-          q: searchQuery,
-          type: activeTab,
+          search: searchQuery,
         },
       });
-      return response.data;
+      return { recipes: response.data.data || [] };
     },
     {
       enabled: !!searchQuery.trim(),
@@ -66,18 +65,7 @@ export default function RecipeSearchScreen({ navigation }) {
   // Handle hashtag click
   const handleHashtagClick = (hashtag) => {
     setSearchQuery(hashtag);
-    setActiveTab('hashtags');
     refetch();
-  };
-
-  // Handle profile click
-  const handleProfileClick = (userId) => {
-    navigation.navigate('Profile', { userId });
-  };
-
-  // Handle post click
-  const handlePostClick = (postId) => {
-    navigation.navigate('PostDetail', { postId });
   };
 
   // Handle recipe click
@@ -85,85 +73,38 @@ export default function RecipeSearchScreen({ navigation }) {
     navigation.navigate('RecipeDetail', { recipeId });
   };
 
-  // Render recipe item
   const renderRecipe = ({ item }) => (
     <TouchableOpacity 
       style={styles.recipeCard}
       onPress={() => handleRecipeClick(item.id)}
     >
-      <View style={styles.recipeHeader}>
-        <Text style={styles.recipeTitle}>{item.title}</Text>
+      <Image 
+        source={{ uri: item.image_url || 'https://via.placeholder.com/150' }} 
+        style={styles.recipeImage}
+        resizeMode="cover"
+      />
+      <View style={styles.recipeInfo}>
+        <Text style={styles.recipeTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
         <Text style={styles.recipeDescription} numberOfLines={2}>
           {item.description}
         </Text>
-      </View>
-      <View style={styles.recipeMeta}>
-        <Text style={styles.recipeTime}>{item.cooking_time} min</Text>
-        <Text style={styles.recipeDifficulty}>{item.difficulty}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-
-  // Render post item
-  const renderPost = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.postCard}
-      onPress={() => handlePostClick(item.id)}
-    >
-      <View style={styles.postHeader}>
-        <Image
-          source={{ uri: item.users?.avatar_url || 'https://via.placeholder.com/40' }}
-          style={styles.postAvatar}
-        />
-        <View style={styles.postUserInfo}>
-          <Text style={styles.postUsername}>{item.users?.username || 'Unknown'}</Text>
-          <Text style={styles.postDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+        <View style={styles.recipeMeta}>
+          <View style={styles.recipeMetaItem}>
+            <Ionicons name="time-outline" size={14} color="#666" />
+            <Text style={styles.recipeMetaText}>{item.cooking_time || 0} min</Text>
+          </View>
+          <View style={styles.recipeMetaItem}>
+            <Ionicons name="people-outline" size={14} color="#666" />
+            <Text style={styles.recipeMetaText}>{item.servings || 1} servings</Text>
+          </View>
         </View>
       </View>
-      <Text style={styles.postTitle}>{item.title}</Text>
-      <Text style={styles.postContent} numberOfLines={3}>
-        {item.content}
-      </Text>
-      {item.hashtags && item.hashtags.length > 0 && (
-        <View style={styles.hashtagsContainer}>
-          {item.hashtags.map((tag, index) => (
-            <Text key={index} style={styles.hashtag}>#{tag}</Text>
-          ))}
-        </View>
-      )}
     </TouchableOpacity>
   );
 
-  // Render user item
-  const renderUser = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.userCard}
-      onPress={() => handleProfileClick(item.id)}
-    >
-      <Image
-        source={{ uri: item.avatar_url || 'https://via.placeholder.com/50' }}
-        style={styles.userAvatar}
-      />
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{item.username || item.name}</Text>
-        <Text style={styles.userBio}>{item.bio || 'No bio available'}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color="#ccc" />
-    </TouchableOpacity>
-  );
-
-  // Render hashtag item
-  const renderHashtag = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.hashtagCard}
-      onPress={() => handleHashtagClick(item.tag)}
-    >
-      <Text style={styles.hashtagText}>#{item.tag}</Text>
-      <Text style={styles.hashtagCount}>{item.count} posts</Text>
-    </TouchableOpacity>
-  );
-
-  // Render content based on active tab and search state
+  // Render content based on search state
   const renderContent = () => {
     if (searchQuery.trim()) {
       if (isLoading) {
@@ -175,27 +116,22 @@ export default function RecipeSearchScreen({ navigation }) {
         );
       }
 
-      const results = searchResults?.[activeTab] || [];
+      const recipes = searchResults?.recipes || [];
       
-      if (results.length === 0) {
+      if (recipes.length === 0) {
         return (
           <View style={styles.centerContainer}>
-            <Ionicons name="search-outline" size={48} color="#ccc" />
-            <Text style={styles.noResultsText}>No {activeTab} found for "{searchQuery}"</Text>
+            <Ionicons name="restaurant-outline" size={48} color="#ccc" />
+            <Text style={styles.noResultsText}>No recipes found for "{searchQuery}"</Text>
           </View>
         );
       }
 
       return (
         <FlatList
-          data={results}
-          renderItem={
-            activeTab === 'recipes' ? renderRecipe :
-            activeTab === 'posts' ? renderPost :
-            activeTab === 'users' ? renderUser :
-            renderHashtag
-          }
-          keyExtractor={(item) => item.id?.toString() || item.tag}
+          data={recipes}
+          renderItem={renderRecipe}
+          keyExtractor={(item) => item.id?.toString()}
           contentContainerStyle={styles.resultsList}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -210,7 +146,7 @@ export default function RecipeSearchScreen({ navigation }) {
       <ScrollView style={styles.suggestionsContainer} showsVerticalScrollIndicator={false}>
         {popularHashtags && popularHashtags.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Popular Hashtags</Text>
+            <Text style={styles.sectionTitle}>Popular Recipe Tags</Text>
             <View style={styles.hashtagsGrid}>
               {popularHashtags.slice(0, 10).map((hashtag, index) => (
                 <TouchableOpacity
@@ -227,10 +163,10 @@ export default function RecipeSearchScreen({ navigation }) {
         )}
 
         <View style={styles.centerContainer}>
-          <Ionicons name="search-outline" size={48} color="#ccc" />
-          <Text style={styles.suggestionText}>Start searching to discover content</Text>
+          <Ionicons name="restaurant-outline" size={48} color="#ccc" />
+          <Text style={styles.suggestionText}>Start searching to discover recipes</Text>
           <Text style={styles.suggestionSubtext}>
-            Search for recipes, posts, users, or hashtags to get started
+            Search for recipes by name, description, or ingredients
           </Text>
         </View>
       </ScrollView>
@@ -281,7 +217,7 @@ export default function RecipeSearchScreen({ navigation }) {
           <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder={searchMode === 'name' ? "Search recipes, posts, users..." : "Enter ingredients..."}
+            placeholder={searchMode === 'name' ? "Search recipes..." : "Enter ingredients..."}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearch}
@@ -301,48 +237,6 @@ export default function RecipeSearchScreen({ navigation }) {
           <Text style={styles.searchButtonText}>Search</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Filter Tabs */}
-      {searchQuery.trim() && (
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'recipes' && styles.activeTab]}
-            onPress={() => setActiveTab('recipes')}
-          >
-            <Ionicons name="restaurant" size={16} color={activeTab === 'recipes' ? '#fff' : '#666'} />
-            <Text style={[styles.tabText, activeTab === 'recipes' && styles.activeTabText]}>
-              Recipes
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'posts' && styles.activeTab]}
-            onPress={() => setActiveTab('posts')}
-          >
-            <Ionicons name="document-text" size={16} color={activeTab === 'posts' ? '#fff' : '#666'} />
-            <Text style={[styles.tabText, activeTab === 'posts' && styles.activeTabText]}>
-              Posts
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'users' && styles.activeTab]}
-            onPress={() => setActiveTab('users')}
-          >
-            <Ionicons name="people" size={16} color={activeTab === 'users' ? '#fff' : '#666'} />
-            <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>
-              Users
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'hashtags' && styles.activeTab]}
-            onPress={() => setActiveTab('hashtags')}
-          >
-            <Ionicons name="pricetag" size={16} color={activeTab === 'hashtags' ? '#fff' : '#666'} />
-            <Text style={[styles.tabText, activeTab === 'hashtags' && styles.activeTabText]}>
-              Hashtags
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {renderContent()}
     </SafeAreaView>
@@ -545,150 +439,47 @@ const styles = StyleSheet.create({
   recipeCard: {
     backgroundColor: '#fff',
     borderRadius: 10,
-    padding: 15,
+    overflow: 'hidden', // Ensure image doesn't overflow
     marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  recipeHeader: {
-    marginBottom: 10,
+  recipeImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginRight: 15,
+  },
+  recipeInfo: {
+    flex: 1,
   },
   recipeTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 5,
   },
   recipeDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
+    marginBottom: 10,
   },
   recipeMeta: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 10,
   },
-  recipeTime: {
-    fontSize: 12,
-    color: '#999',
-  },
-  recipeDifficulty: {
-    fontSize: 12,
-    color: '#999',
-  },
-  postCard: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  postHeader: {
+  recipeMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
   },
-  postAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  postUserInfo: {
-    flex: 1,
-  },
-  postUsername: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  postDate: {
+  recipeMetaText: {
     fontSize: 12,
     color: '#999',
-  },
-  postTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  postContent: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 10,
-  },
-  hashtagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 5,
-  },
-  hashtag: {
-    fontSize: 12,
-    color: '#FF6B6B',
-    backgroundColor: '#fff0f0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  userAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 15,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  userBio: {
-    fontSize: 14,
-    color: '#666',
-  },
-  hashtagCard: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  hashtagText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
-  },
-  hashtagCount: {
-    fontSize: 14,
-    color: '#666',
+    marginLeft: 4,
   },
 });

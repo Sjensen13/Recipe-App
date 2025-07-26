@@ -53,6 +53,27 @@ const createMockTable = (tableName) => ({
     const isComplexSelect = typeof columns === 'string' && columns.includes('(');
     
     return {
+      // Add a simple method to return all data for recipes
+      then: (callback) => {
+        let data = [...mockData[tableName]];
+        
+        // Handle complex selects with joins for recipes
+        if (isComplexSelect && tableName === 'recipes') {
+          data = data.map(recipe => {
+            const result = { ...recipe };
+            
+            // Add user data
+            if (columns.includes('user')) {
+              const user = mockData.users.find(u => u.id === recipe.user_id);
+              result.user = user || null;
+            }
+            
+            return result;
+          });
+        }
+        
+        return Promise.resolve({ data, error: null });
+      },
       eq: (column, value) => ({
         single: () => {
           const data = mockData[tableName].find(item => item[column] === value);
@@ -339,6 +360,23 @@ const createMockTable = (tableName) => ({
       },
       limit: (count) => {
         const data = mockData[tableName].slice(0, count);
+        
+        // Handle complex selects with joins for recipes
+        if (isComplexSelect && tableName === 'recipes') {
+          const recipesWithUsers = data.map(recipe => {
+            const result = { ...recipe };
+            
+            // Add user data
+            if (columns.includes('user')) {
+              const user = mockData.users.find(u => u.id === recipe.user_id);
+              result.user = user || null;
+            }
+            
+            return result;
+          });
+          return Promise.resolve({ data: recipesWithUsers, error: null });
+        }
+        
         return Promise.resolve({ data, error: null });
       },
       order: (column, options = {}) => {

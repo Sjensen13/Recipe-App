@@ -81,8 +81,29 @@ const getRecipes = async (req, res) => {
       ingredientsArr = ingredients.split(',').map(s => s.trim()).filter(Boolean);
     }
 
-    // Use the new combined search function
-    const recipes = await searchRecipesByNameOrIngredients(search, ingredientsArr, parseInt(limit));
+    let recipes = [];
+    
+    if (search.trim() || ingredientsArr.length > 0) {
+      // Use the new combined search function when there's a search query
+      console.log('Searching recipes with query:', search, 'ingredients:', ingredientsArr);
+      recipes = await searchRecipesByNameOrIngredients(search, ingredientsArr, parseInt(limit));
+      console.log('Search results:', recipes.length);
+    } else {
+      // Get all recipes when no search is provided
+      console.log('Fetching all recipes');
+      const supabase = getSupabase();
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching recipes:', error);
+        throw new Error('Failed to fetch recipes');
+      }
+      
+      console.log('Fetched recipes:', data ? data.length : 0);
+      recipes = data || [];
+    }
 
     res.json({
       success: true,
