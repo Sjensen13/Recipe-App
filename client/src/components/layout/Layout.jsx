@@ -19,7 +19,7 @@ const navLinks = [
   { to: '/app/create-post', label: 'Create', icon: Plus },
   { to: '/app/messages', label: 'Messages', icon: MessageCircle, showBadge: true },
   { to: '/app/notifications', label: 'Notifications', icon: Bell },
-  { to: '/app/profile/me', label: 'Profile', icon: User },
+  { to: '/app/profile', label: 'Profile', icon: User },
 ];
 
 const Layout = () => {

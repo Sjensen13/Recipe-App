@@ -67,7 +67,13 @@ export default function ExploreScreen({ navigation, route }) {
   };
 
   const handleProfileClick = (userId) => {
-    navigation.navigate('Profile', { userId });
+    if (userId === user?.id) {
+      // Navigate to own profile (stays in tab navigator)
+      navigation.navigate('Profile');
+    } else {
+      // Navigate to other user's profile
+      navigation.navigate('UserProfile', { userId });
+    }
   };
 
   const handlePostClick = (postId) => {
@@ -100,26 +106,53 @@ export default function ExploreScreen({ navigation, route }) {
     }
   };
 
-  const renderPost = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.postCard}
-      onPress={() => handlePostClick(item.id)}
-    >
-      <View style={styles.postHeader}>
-        <TouchableOpacity 
-          style={styles.userInfo}
-          onPress={() => handleProfileClick(item.user_id)}
-        >
-          <Image
-            source={{ uri: item.users?.avatar_url || 'https://via.placeholder.com/40' }}
-            style={styles.avatar}
-          />
-          <View style={styles.userDetails}>
-            <Text style={styles.username}>{item.users?.username || 'Unknown User'}</Text>
-            <Text style={styles.timestamp}>{formatDate(item.created_at)}</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+  const renderPost = ({ item }) => {
+    // Helper function to get user display name
+    const getUserDisplayName = () => {
+      return item.users?.username || 
+             item.users?.name || 
+             item.users?.display_name || 
+             `User ${item.user_id?.slice(0, 8)}` || 
+             'Unknown User';
+    };
+
+    // Helper function to get avatar URL with fallback
+    const getAvatarUrl = () => {
+      if (item.users?.avatar_url) {
+        return item.users.avatar_url;
+      }
+      return 'https://via.placeholder.com/40';
+    };
+
+    // Handle avatar load error
+    const handleAvatarError = (error) => {
+      console.log('Avatar load error for user:', item.user_id, 'URL:', item.users?.avatar_url);
+    };
+
+    return (
+      <TouchableOpacity 
+        style={styles.postCard}
+        onPress={() => handlePostClick(item.id)}
+      >
+        <View style={styles.postHeader}>
+          <TouchableOpacity 
+            style={styles.userInfo}
+            onPress={() => handleProfileClick(item.user_id)}
+          >
+            <Image
+              source={{ 
+                uri: getAvatarUrl(),
+                headers: { 'Cache-Control': 'no-cache' }
+              }}
+              style={styles.avatar}
+              onError={handleAvatarError}
+            />
+            <View style={styles.userDetails}>
+              <Text style={styles.username}>{getUserDisplayName()}</Text>
+              <Text style={styles.timestamp}>{formatDate(item.created_at)}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
       {item.image && (
         <Image source={{ uri: item.image }} style={styles.postImage} />
@@ -150,6 +183,7 @@ export default function ExploreScreen({ navigation, route }) {
       </View>
     </TouchableOpacity>
   );
+  };
 
   const renderUser = ({ item }) => (
     <TouchableOpacity 

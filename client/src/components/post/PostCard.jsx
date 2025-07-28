@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/auth/AuthContext';
 
 const PostCard = ({
   post,
@@ -16,6 +17,46 @@ const PostCard = ({
   likesState,
   commentsState
 }) => {
+  const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  // Helper function to get user display name
+  const getUserDisplayName = () => {
+    return post.users?.name || 
+           post.users?.username || 
+           post.users?.display_name || 
+           `User ${post.users?.id?.slice(0, 8)}` || 
+           'Unknown User';
+  };
+
+  // Helper function to get avatar URL with fallback
+  const getAvatarUrl = () => {
+    if (post.users?.avatar_url) {
+      console.log('Using avatar URL for user:', post.users.id, 'URL:', post.users.avatar_url);
+      return post.users.avatar_url;
+    }
+    console.log('No avatar URL for user:', post.users?.id, 'using default avatar');
+    // Return default avatar
+    return require('../../assets/images/default-avatar.png');
+  };
+
+  // Handle avatar load error
+  const handleAvatarError = (e) => {
+    console.log('Avatar load error for user:', post.users?.id, 'URL:', post.users?.avatar_url);
+    e.target.src = require('../../assets/images/default-avatar.png');
+  };
+
+  // Handle profile click
+  const handleProfileClick = (userId) => {
+    if (userId === currentUser?.id) {
+      // Navigate to own profile
+      navigate('/app/profile');
+    } else {
+      // Navigate to other user's profile
+      navigate(`/app/profile/${userId}`);
+    }
+  };
+
   return (
     <div
       style={{
@@ -29,21 +70,23 @@ const PostCard = ({
       <div style={{ padding: '1.5rem 1.5rem 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
           <img
-            src={post.users?.avatar_url || require('../../assets/images/default-avatar.png')}
-            alt={post.users?.name || 'User'}
+            src={getAvatarUrl()}
+            alt={getUserDisplayName()}
+            onError={handleAvatarError}
             style={{
               width: '40px',
               height: '40px',
               borderRadius: '50%',
-              objectFit: 'cover'
+              objectFit: 'cover',
+              border: '2px solid #f3f4f6'
             }}
           />
           <div style={{ flex: 1 }}>
             <button
               style={{ fontWeight: '600', color: '#111827', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
-              onClick={() => onProfileClick(post.users?.id)}
+              onClick={() => handleProfileClick(post.users?.id)}
             >
-              {post.users?.name || 'Unknown User'}
+              {getUserDisplayName()}
             </button>
             <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
               {formatDate(post.created_at)}

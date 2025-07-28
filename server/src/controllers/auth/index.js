@@ -47,47 +47,158 @@ const updateProfile = async (req, res) => {
     const userId = req.user.id;
     const { username, name, bio, avatar_url } = req.body;
 
-    // Update user metadata in Supabase auth
-    const { error: authError } = await supabase.auth.admin.updateUserById(
-      userId,
-      {
-        user_metadata: {
+    console.log('Update profile request:', { userId, username, name, bio, avatar_url });
+
+    // Check if we're using mock database (no real Supabase connection)
+    const isMockMode = !supabase.auth.admin || typeof supabase.auth.admin.updateUserById !== 'function';
+    
+    if (isMockMode) {
+      console.log('Running in mock mode - skipping Supabase auth update');
+      
+      try {
+        // In mock mode, just update the users table using update instead of upsert
+        console.log('Attempting to update user data:', {
+          id: userId,
           username,
           name,
           bio,
-          avatar_url
+          avatar_url,
+          updated_at: new Date().toISOString()
+        });
+        
+        const { error: profileError } = await supabase
+          .from('users')
+          .update({
+            username,
+            name,
+            bio,
+            avatar_url,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
+
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+        } else {
+          console.log('Profile update successful in mock mode');
         }
+      } catch (updateError) {
+        console.error('Update error:', updateError);
+        throw updateError;
       }
-    );
 
-    if (authError) {
-      console.error('Auth update error:', authError);
-      return res.status(400).json({
-        success: false,
-        message: 'Failed to update profile'
-      });
-    }
+      // Get the updated user data
+      const { data: updatedUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    // Optionally update custom users table if you're using one
-    const { error: profileError } = await supabase
-      .from('users')
-      .upsert({
+      if (fetchError) {
+        console.error('Fetch updated user error:', fetchError);
+      }
+
+      // Create a complete user object with all necessary fields
+      const completeUserData = {
         id: userId,
-        username,
-        name,
-        bio,
-        avatar_url,
-        updated_at: new Date().toISOString()
+        email: req.user.email, // Keep the email from the authenticated user
+        username: username,
+        name: name,
+        bio: bio,
+        avatar_url: avatar_url,
+        created_at: updatedUser?.created_at || req.user.created_at,
+        updated_at: new Date().toISOString(),
+        user_metadata: {
+          username: username,
+          name: name,
+          bio: bio,
+          avatar_url: avatar_url
+        }
+      };
+
+      console.log('Server returning updated user data (mock mode):', completeUserData);
+
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: completeUserData
       });
+    } else {
+      // Real Supabase mode
+      // Update user metadata in Supabase auth
+      const { error: authError } = await supabase.auth.admin.updateUserById(
+        userId,
+        {
+          user_metadata: {
+            username,
+            name,
+            bio,
+            avatar_url
+          }
+        }
+      );
 
-    if (profileError) {
-      console.error('Profile update error:', profileError);
+      if (authError) {
+        console.error('Auth update error:', authError);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to update profile'
+        });
+      }
+
+      // Optionally update custom users table if you're using one
+      const { error: profileError } = await supabase
+        .from('users')
+        .upsert({
+          id: userId,
+          username,
+          name,
+          bio,
+          avatar_url,
+          updated_at: new Date().toISOString()
+        });
+
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+      }
+
+      // Get the updated user data
+      const { data: updatedUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError) {
+        console.error('Fetch updated user error:', fetchError);
+      }
+
+      // Create a complete user object with all necessary fields
+      const completeUserData = {
+        id: userId,
+        email: req.user.email, // Keep the email from the authenticated user
+        username: username,
+        name: name,
+        bio: bio,
+        avatar_url: avatar_url,
+        created_at: updatedUser?.created_at || req.user.created_at,
+        updated_at: new Date().toISOString(),
+        user_metadata: {
+          username: username,
+          name: name,
+          bio: bio,
+          avatar_url: avatar_url
+        }
+      };
+
+      console.log('Server returning updated user data (real mode):', completeUserData);
+
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: completeUserData
+      });
     }
-
-    res.json({
-      success: true,
-      message: 'Profile updated successfully'
-    });
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({

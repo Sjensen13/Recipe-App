@@ -50,6 +50,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const resetUserData = async () => {
+    try {
+      console.log('Resetting corrupted user data...');
+      await clearStoredAuth();
+      console.log('User data reset complete');
+    } catch (error) {
+      console.error('Error resetting user data:', error);
+    }
+  };
+
   const login = async (usernameOrEmail, password) => {
     try {
       let email = usernameOrEmail;
@@ -136,14 +146,46 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = async (userData) => {
     try {
-      const response = await apiClient.put('/users/profile', userData);
-      const updatedUser = response.data;
+      // If userData is already the updated data (from server response), use it directly
+      // Otherwise, make the API call to update the profile
+      let updatedUserData;
+      
+      if (userData.id && userData.name && userData.username) {
+        // This is already the updated user data from server response
+        updatedUserData = userData;
+      } else {
+        // This is form data, need to make API call
+        const response = await apiClient.put('/auth/profile', userData);
+        updatedUserData = response.data.data || response.data;
+      }
 
-      setUser(updatedUser);
-      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      // Only update specific fields, don't spread the entire response
+      const mergedUser = {
+        ...user, // Keep all existing user data
+        name: updatedUserData.name || user.name,
+        username: updatedUserData.username || user.username,
+        bio: updatedUserData.bio || user.bio,
+        avatar_url: updatedUserData.avatar_url || user.avatar_url,
+        updated_at: updatedUserData.updated_at || user.updated_at,
+        user_metadata: {
+          ...user?.user_metadata, // Keep existing metadata
+          name: updatedUserData.name,
+          username: updatedUserData.username,
+          bio: updatedUserData.bio,
+          avatar_url: updatedUserData.avatar_url,
+        }
+      };
 
-      return updatedUser;
+      console.log('Original user:', user);
+      console.log('Updated user data:', updatedUserData);
+      console.log('Merged user:', mergedUser);
+
+      setUser(mergedUser);
+      await AsyncStorage.setItem('user', JSON.stringify(mergedUser));
+
+      return mergedUser;
     } catch (error) {
+      console.error('Update user error:', error);
       throw new Error(error.response?.data?.message || 'Update failed');
     }
   };
@@ -157,6 +199,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateUser,
     clearStoredAuth,
+    resetUserData,
     isAuthenticated: !!token,
   };
 

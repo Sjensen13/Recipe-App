@@ -3,43 +3,33 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Image } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { apiClient } from '../../services/api';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function ProfileScreen({ navigation, route }) {
-  const { user, logout, clearStoredAuth } = useAuth();
-  const { userId } = route?.params || {};
+  const { user, logout, clearStoredAuth, resetUserData, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('posts');
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
 
-  // Determine if viewing own profile
-  const isOwnProfile = !userId || userId === user?.id;
-
-  // Fetch user profile
-  const { data: profile, isLoading: profileLoading } = useQuery(
-    ['profile', userId || user?.id],
-    async () => {
-      const targetUserId = userId || user?.id;
-      const response = await apiClient.get(`/users/${targetUserId}`);
-      return response.data;
-    },
-    {
-      enabled: !!(userId || user?.id),
-    }
-  );
+  // Use user data from AuthContext directly instead of fetching profile
+  // This ensures we always have the user data available
+  const profile = user ? { data: { user } } : null;
+  const profileLoading = false;
+  const profileError = null;
 
   // Fetch user posts
   const { data: userPosts, isLoading: postsLoading } = useQuery(
-    ['userPosts', userId || user?.id],
+    ['userPosts', user?.id],
     async () => {
-      const targetUserId = userId || user?.id;
-      const response = await apiClient.get(`/users/${targetUserId}/posts`);
+      const response = await apiClient.get(`/users/${user.id}/posts`);
       return response.data;
     },
     {
-      enabled: !!(userId || user?.id),
+      enabled: !!user?.id,
       onSuccess: (data) => {
         console.log('API userPosts:', data);
       }
@@ -48,55 +38,72 @@ export default function ProfileScreen({ navigation, route }) {
 
   // Fetch liked posts
   const { data: likedPosts, isLoading: likedPostsLoading } = useQuery(
-    ['likedPosts', userId || user?.id],
+    ['likedPosts', user?.id],
     async () => {
-      const targetUserId = userId || user?.id;
-      const response = await apiClient.get(`/users/${targetUserId}/liked-posts`);
+      const response = await apiClient.get(`/users/${user.id}/liked-posts`);
       return response.data?.data || response.data || [];
     },
     {
-      enabled: !!(userId || user?.id),
+      enabled: !!user?.id,
     }
   );
 
   // Fetch user recipes (placeholder, implement API if available)
   const { data: userRecipes, isLoading: recipesLoading } = useQuery(
-    ['userRecipes', userId || user?.id],
+    ['userRecipes', user?.id],
     async () => {
-      const targetUserId = userId || user?.id;
-      const response = await apiClient.get(`/users/${targetUserId}/recipes`);
+      const response = await apiClient.get(`/users/${user.id}/recipes`);
       return response.data;
     },
     {
-      enabled: !!(userId || user?.id),
+      enabled: !!user?.id,
     }
   );
   // Fetch saved posts/recipes (placeholder, implement API if available)
   const { data: savedItems, isLoading: savedLoading } = useQuery(
-    ['savedItems', userId || user?.id],
+    ['savedItems', user?.id],
     async () => {
-      const targetUserId = userId || user?.id;
-      const response = await apiClient.get(`/users/${targetUserId}/saved`);
+      const response = await apiClient.get(`/users/${user.id}/saved`);
       return response.data;
     },
     {
-      enabled: !!(userId || user?.id),
+      enabled: !!user?.id,
     }
   );
 
   // Fetch follow data
   useEffect(() => {
-    if ((userId || user?.id) && user?.id) {
+    if (user?.id) {
       fetchFollowData();
     }
-  }, [userId, user?.id]);
+  }, [user?.id]);
+
+  // Refresh data when user data changes (e.g., after profile update)
+  useEffect(() => {
+    if (user?.id) {
+      queryClient.invalidateQueries(['userPosts', user.id]);
+      fetchFollowData();
+    }
+  }, [user?.name, user?.username, user?.bio, user?.avatar_url]);
+
+  // Refresh data when screen comes into focus (e.g., after editing profile)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user?.id) {
+        // Refetch posts data
+        queryClient.invalidateQueries(['userPosts', user.id]);
+        fetchFollowData();
+        console.log('ProfileScreen - Screen focused, user data:', user);
+      }
+    }, [user?.id, queryClient, user?.name, user?.username, user?.bio, user?.avatar_url])
+  );
 
   // Log userPosts for debugging
   console.log('User posts:', userPosts);
 
   const fetchFollowData = async () => {
     try {
-      const targetUserId = userId || user?.id;
+      const targetUserId = user?.id;
       
       // Check if following
       const followResponse = await apiClient.get(`/users/${targetUserId}/follow-status`);
@@ -117,11 +124,11 @@ export default function ProfileScreen({ navigation, route }) {
   const handleFollow = async () => {
     try {
       if (isFollowing) {
-        await apiClient.delete(`/users/${userId}/follow`);
+        await apiClient.delete(`/users/${user?.id}/follow`);
         setIsFollowing(false);
         setFollowersCount(prev => prev - 1);
       } else {
-        await apiClient.post(`/users/${userId}/follow`);
+        await apiClient.post(`/users/${user?.id}/follow`);
         setIsFollowing(true);
         setFollowersCount(prev => prev + 1);
       }
@@ -292,7 +299,7 @@ export default function ProfileScreen({ navigation, route }) {
     return null;
   };
 
-  if (profileLoading) {
+  if (profileLoading || authLoading || !user) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -306,59 +313,87 @@ export default function ProfileScreen({ navigation, route }) {
   console.log('Profile data:', profile);
   console.log('Auth context user:', user);
 
-  // Merge user_metadata fields for display, handling nested profile.data.user
-  const userFromProfile = profile?.data?.user || {};
-  const displayUser = {
-    ...(user || {}),
-    ...(user?.user_metadata || {}),
-    ...userFromProfile,
-    ...(userFromProfile.user_metadata || {}),
+  // Use user data directly from AuthContext with better fallbacks
+  const finalDisplayUser = {
+    name: user?.name || user?.user_metadata?.name || 'User',
+    username: user?.username || user?.user_metadata?.username || 'username',
+    bio: user?.bio || user?.user_metadata?.bio || '',
+    avatar_url: user?.avatar_url || user?.user_metadata?.avatar_url || '',
+    email: user?.email || '',
   };
+
+  // Log for debugging profile updates
+  console.log('ProfileScreen - Current user data:', user);
+  console.log('ProfileScreen - Final display user:', finalDisplayUser);
+  console.log('ProfileScreen - User name changed:', user?.name);
+  console.log('ProfileScreen - User username changed:', user?.username);
+  console.log('ProfileScreen - User bio changed:', user?.bio);
+  console.log('ProfileScreen - User avatar changed:', user?.avatar_url);
+
+  // If we still don't have proper user data, show a message with reset option
+  if (!user?.id || user?.success || user?.message) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text>No user data available. Please log in again.</Text>
+          <Text style={{ marginTop: 10, fontSize: 12, color: '#666' }}>
+            User ID: {user?.id || 'null'}
+          </Text>
+          <Text style={{ fontSize: 12, color: '#666' }}>
+            User object: {JSON.stringify(user, null, 2)}
+          </Text>
+          <TouchableOpacity 
+            style={{ marginTop: 20, padding: 10, backgroundColor: '#007bff', borderRadius: 5 }}
+            onPress={resetUserData}
+          >
+            <Text style={{ color: 'white', textAlign: 'center' }}>Reset User Data</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Log for debugging
+  console.log('Auth user:', user);
+  console.log('User metadata:', user?.user_metadata);
+  console.log('Final display user:', finalDisplayUser);
+  console.log('User ID:', user?.id);
+  console.log('User email:', user?.email);
+  console.log('User name:', user?.name);
+  console.log('User username:', user?.username);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
-        {isOwnProfile && (
+        {user?.id && (
           <View style={{ flexDirection: 'row' }}>
-            <TouchableOpacity style={styles.editButton} onPress={() => {/* TODO: Implement edit profile navigation */}}>
+            <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditProfile')}>
               <Ionicons name="create-outline" size={24} color="#007bff" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={24} color="#FF6B6B" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.logoutButton} onPress={clearStoredAuth}>
-              <Ionicons name="refresh-outline" size={24} color="#FF9500" />
-            </TouchableOpacity>
           </View>
         )}
       </View>
       <View style={styles.content}>
-        <View style={styles.profileSection}>
+        <View style={styles.profileSection} key={`${user?.name}-${user?.username}-${user?.bio}-${user?.avatar_url}`}>
           <View style={styles.avatarPlaceholder}>
-            {displayUser?.avatar_url ? (
-              <Image source={{ uri: displayUser.avatar_url }} style={styles.avatar} />
+            {finalDisplayUser?.avatar_url ? (
+              <Image source={{ uri: finalDisplayUser.avatar_url }} style={styles.avatar} />
             ) : (
               <Ionicons name="person" size={60} color="#ccc" />
             )}
           </View>
-          <Text style={styles.name}>{displayUser?.name}</Text>
-          {displayUser?.username && (
-            <Text style={styles.handle}>@{displayUser.username}</Text>
+          <Text style={styles.name}>{finalDisplayUser?.name}</Text>
+          {finalDisplayUser?.username && (
+            <Text style={styles.handle}>@{finalDisplayUser.username}</Text>
           )}
-          {displayUser?.bio && (
-            <Text style={styles.bio}>{displayUser.bio}</Text>
+          {finalDisplayUser?.bio && (
+            <Text style={styles.bio}>{finalDisplayUser.bio}</Text>
           )}
-          {!isOwnProfile && (
-            <TouchableOpacity 
-              style={[styles.followButton, isFollowing && styles.followingButton]} 
-              onPress={handleFollow}
-            >
-              <Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>
-                {isFollowing ? 'Following' : 'Follow'}
-              </Text>
-            </TouchableOpacity>
-          )}
+          {/* Follow button removed - users shouldn't follow themselves */}
         </View>
         <View style={styles.statsSection}>
           <View style={styles.statItem}>

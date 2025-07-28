@@ -12,10 +12,19 @@ export const apiClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    // Add mock token for development if no auth token is present
-    if (!config.headers.Authorization) {
+    // Get the current token from the API client defaults
+    const currentToken = apiClient.defaults.headers.common['Authorization'];
+    
+    // Only add mock token if no Authorization header is already set
+    // This allows the AuthContext to set the real token
+    if (!config.headers.Authorization && !currentToken) {
       config.headers.Authorization = 'Bearer mock_jwt_token_development';
+    } else if (currentToken && !config.headers.Authorization) {
+      // Use the token set by AuthContext
+      config.headers.Authorization = currentToken;
     }
+    
+    console.log('Request headers:', config.headers);
     return config;
   },
   (error) => {
@@ -56,7 +65,7 @@ export const postsAPI = {
 
 export const usersAPI = {
   getProfile: (id) => apiClient.get(`/users/${id}`),
-  updateProfile: (userData) => apiClient.put('/users/profile', userData),
+  updateProfile: (userData) => apiClient.put('/auth/profile', userData),
   followUser: (id) => apiClient.post(`/users/${id}/follow`),
   unfollowUser: (id) => apiClient.delete(`/users/${id}/follow`),
   getFollowers: (id) => apiClient.get(`/users/${id}/followers`),

@@ -12,6 +12,7 @@ import RegisterScreen from './src/screens/auth/RegisterScreen';
 import HomeScreen from './src/screens/feed/HomeScreen';
 import ExploreScreen from './src/screens/explore/ExploreScreen';
 import ProfileScreen from './src/screens/profile/ProfileScreen';
+import UserProfileScreen from './src/screens/profile/UserProfileScreen';
 import MessagesScreen from './src/screens/messaging/MessagesScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import CreatePostScreen from './src/screens/post/CreatePostScreen';
@@ -20,6 +21,7 @@ import RecipeSearchScreen from './src/screens/recipe/RecipeSearchScreen';
 import CreateRecipeScreen from './src/screens/recipe/CreateRecipeScreen';
 import RecipeDetailScreen from './src/screens/recipe/RecipeDetailScreen';
 import ConversationScreen from './src/screens/messaging/ConversationScreen';
+import EditProfile from './src/screens/profile/EditProfile';
 
 // Import contexts
 import { AuthProvider } from './src/context/AuthContext';
@@ -90,6 +92,14 @@ export default function App() {
                   <Stack.Screen name="RecipeSearch" component={RecipeSearchScreen} />
                   <Stack.Screen name="CreateRecipe" component={CreateRecipeScreen} />
                   <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+                  <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+                  <Stack.Screen 
+                    name="EditProfile" 
+                    component={EditProfile}
+                    options={{
+                      headerShown: false,
+                    }}
+                  />
                   <Stack.Screen 
                     name="Conversation" 
                     component={ConversationScreen}

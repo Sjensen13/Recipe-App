@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { getSupabase } = require('../database');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
@@ -10,22 +11,9 @@ if (supabaseUrl && supabaseServiceKey && supabaseUrl !== 'your_supabase_project_
   // Use service key for server-side operations
   supabase = createClient(supabaseUrl, supabaseServiceKey);
 } else {
-  // Fallback to mock client for development
+  // Use the mock database from the database service
   console.log('⚠️  Using mock Supabase client for development');
-  supabase = {
-    auth: {
-      getUser: (token) => Promise.resolve({ 
-        data: { 
-          user: { 
-            id: '74ff4ba9-0a8b-47d8-b5c5-20c8e5ca1b0f',
-            email: 'test@example.com',
-            user_metadata: {}
-          } 
-        }, 
-        error: null 
-      })
-    }
-  };
+  supabase = getSupabase();
 }
 
 module.exports = { supabase }; 

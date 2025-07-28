@@ -9,7 +9,8 @@ import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Home from './pages/feed/Home';
 import Explore from './pages/explore/Explore';
-import Profile from './pages/profile/Profile';
+import MyProfile from './pages/profile/MyProfile';
+import UserProfile from './pages/profile/UserProfile';
 import PostDetail from './pages/post/PostDetail';
 import CreatePost from './pages/post/CreatePost';
 import Messages from './pages/messaging/Messages';
@@ -34,7 +35,8 @@ function App() {
               <Route path="notifications" element={<Notifications />} />
               <Route path="recipe-search" element={<RecipeSearch />} />
               <Route path="recipe/create" element={<CreateRecipe />} />
-              <Route path="profile/:userId" element={<Profile />} />
+              <Route path="profile" element={<MyProfile />} />
+              <Route path="profile/:userId" element={<UserProfile />} />
               <Route path="post/:postId" element={<PostDetail />} />
             </Route>
           </Routes>

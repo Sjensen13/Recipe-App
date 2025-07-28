@@ -57,8 +57,13 @@ const PostDetail = () => {
   };
 
   const handleProfileClick = (userId) => {
-    // TODO: Implement navigation to user profile
-    window.location.href = `/app/profile/${userId}`;
+    if (userId === user?.id) {
+      // Navigate to own profile
+      navigate('/app/profile');
+    } else {
+      // Navigate to other user's profile
+      navigate(`/app/profile/${userId}`);
+    }
   };
 
   const handleLike = async (postId) => {

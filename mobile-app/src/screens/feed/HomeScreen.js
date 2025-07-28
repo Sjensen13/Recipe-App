@@ -158,7 +158,13 @@ export default function HomeScreen({ navigation, route }) {
   };
 
   const handleProfileClick = (userId) => {
-    navigation.navigate('Profile', { userId });
+    if (userId === user?.id) {
+      // Navigate to own profile (stays in tab navigator)
+      navigation.navigate('Profile');
+    } else {
+      // Navigate to other user's profile
+      navigation.navigate('UserProfile', { userId });
+    }
   };
 
   const renderPost = ({ item }) => {
@@ -166,7 +172,29 @@ export default function HomeScreen({ navigation, route }) {
     const postComments = commentsState[item.id] || [];
     const isLiked = postLikes.some(like => like.user_id === user?.id);
     
+    // Helper function to get user display name
+    const getUserDisplayName = () => {
+      return item.users?.username || 
+             item.users?.name || 
+             item.users?.display_name || 
+             `User ${item.user_id?.slice(0, 8)}` || 
+             'Unknown User';
+    };
 
+    // Helper function to get avatar URL with fallback
+    const getAvatarUrl = () => {
+      if (item.users?.avatar_url) {
+        console.log('Mobile: Using avatar URL for user:', item.user_id, 'URL:', item.users.avatar_url);
+        return item.users.avatar_url;
+      }
+      console.log('Mobile: No avatar URL for user:', item.user_id, 'using placeholder');
+      return 'https://via.placeholder.com/40';
+    };
+
+    // Handle avatar load error
+    const handleAvatarError = (error) => {
+      console.log('Avatar load error for user:', item.user_id, 'URL:', item.users?.avatar_url);
+    };
     
     return (
       <View style={styles.postCard}>
@@ -177,14 +205,15 @@ export default function HomeScreen({ navigation, route }) {
           >
             <Image
               source={{ 
-                uri: item.users?.avatar_url || 'https://via.placeholder.com/40',
+                uri: getAvatarUrl(),
                 headers: { 'Cache-Control': 'no-cache' }
               }}
               style={styles.avatar}
+              onError={handleAvatarError}
             />
             <View style={styles.userDetails}>
               <Text style={styles.username}>
-                {item.users?.username || item.users?.name || item.users?.display_name || `User ${item.user_id?.slice(0, 8)}` || 'Unknown User'}
+                {getUserDisplayName()}
               </Text>
               <Text style={styles.timestamp}>{formatDate(item.created_at)}</Text>
             </View>
@@ -569,6 +598,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 10,
+    borderWidth: 2,
+    borderColor: '#f3f4f6',
   },
   userDetails: {
     flex: 1,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { getPosts, likePost, addComment, getPost } from '../../services/api/posts';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
@@ -21,6 +21,7 @@ const Home = () => {
   const [likesState, setLikesState] = useState({});
   const [commentsState, setCommentsState] = useState({});
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Get hashtag filter from URL params
   const hashtagFilter = searchParams.get('hashtag');
@@ -91,8 +92,13 @@ const Home = () => {
 
   // Handler stubs for profile, like, and comment
   const handleProfileClick = (userId) => {
-    // TODO: Implement navigation to user profile
-    window.location.href = `/app/profile/${userId}`;
+    if (userId === user?.id) {
+      // Navigate to own profile
+      navigate('/app/profile');
+    } else {
+      // Navigate to other user's profile
+      navigate(`/app/profile/${userId}`);
+    }
   };
   const handleLike = async (postId) => {
     try {

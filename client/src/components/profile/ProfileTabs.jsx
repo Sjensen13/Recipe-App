@@ -73,6 +73,16 @@ const ProfileTabs = ({
     onNavigate(`/app/home?hashtag=${hashtag}`);
   };
 
+  const handleProfileClick = (userId) => {
+    if (userId === user?.id) {
+      // Navigate to own profile
+      onNavigate('/app/profile');
+    } else {
+      // Navigate to other user's profile
+      onNavigate(`/app/profile/${userId}`);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'likes' && likedPosts && likedPosts.length > 0) {
       // Initialize likes and comments state for liked posts
@@ -251,7 +261,7 @@ const ProfileTabs = ({
                 key={post.id}
                 post={post}
                 formatDate={date => new Date(date).toLocaleDateString()}
-                onProfileClick={userId => onNavigate(`/app/profile/${userId}`)}
+                onProfileClick={userId => handleProfileClick(userId)}
                 onHashtagClick={handleHashtagClick}
                 onLike={() => handleLike(post.id)}
                 onComment={() => handleComment(post.id)}

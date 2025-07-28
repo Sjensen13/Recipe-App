@@ -50,6 +50,20 @@ const getPosts = async (req, res) => {
       });
     }
 
+    // Add debugging for user data
+    if (posts && posts.length > 0) {
+      console.log('Posts fetched:', posts.length);
+      posts.forEach((post, index) => {
+        console.log(`Post ${index + 1}:`, {
+          id: post.id,
+          user_id: post.user_id,
+          users: post.users,
+          has_avatar: !!post.users?.avatar_url,
+          avatar_url: post.users?.avatar_url
+        });
+      });
+    }
+
     res.json({
       success: true,
       data: posts,
