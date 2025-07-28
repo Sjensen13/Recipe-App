@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
-  Camera, 
+  UtensilsCrossed, 
   MessageCircle, 
   Bell, 
   Plus, 
@@ -15,7 +15,7 @@ import useNotifications from '../../hooks/useNotifications';
 const navLinks = [
   { to: '/app/home', label: 'Home', icon: Home },
   { to: '/app/explore', label: 'Explore', icon: Compass },
-  { to: '/app/recipe-search', label: 'Picture', icon: Camera },
+  { to: '/app/recipe-search', label: 'Recipes', icon: UtensilsCrossed },
   { to: '/app/create-post', label: 'Create', icon: Plus },
   { to: '/app/messages', label: 'Messages', icon: MessageCircle, showBadge: true },
   { to: '/app/notifications', label: 'Notifications', icon: Bell },
