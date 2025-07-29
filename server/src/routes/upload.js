@@ -12,10 +12,19 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
+    console.log('Multer fileFilter called with file:', {
+      fieldname: file.fieldname,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      encoding: file.encoding
+    });
+    
     // Check if file is an image
     if (file.mimetype.startsWith('image/')) {
+      console.log('File accepted by multer');
       cb(null, true);
     } else {
+      console.log('File rejected by multer - not an image');
       cb(new Error('Only image files are allowed'), false);
     }
   },

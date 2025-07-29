@@ -1,16 +1,38 @@
 const cloudinaryService = require('../../services/storage/cloudinary');
 const { authenticateToken } = require('../../middleware/auth/auth');
 
+// Check if Cloudinary is configured
+const isCloudinaryConfigured = () => {
+  return process.env.CLOUDINARY_CLOUD_NAME && 
+         process.env.CLOUDINARY_API_KEY && 
+         process.env.CLOUDINARY_API_SECRET;
+};
+
 /**
  * Upload image to Cloudinary
  * POST /api/upload/image
  */
 const uploadImage = async (req, res) => {
   try {
+    console.log('Upload request received');
+    console.log('Request headers:', req.headers);
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
+    console.log('Request files:', req.files);
+    
     if (!req.file) {
+      console.log('No file found in request');
       return res.status(400).json({
         success: false,
         message: 'No file uploaded'
+      });
+    }
+
+    // Check if Cloudinary is configured
+    if (!isCloudinaryConfigured()) {
+      return res.status(500).json({
+        success: false,
+        message: 'Image upload service not configured. Please contact administrator.'
       });
     }
 

@@ -15,16 +15,25 @@ apiClient.interceptors.request.use(
     // Get the current token from the API client defaults
     const currentToken = apiClient.defaults.headers.common['Authorization'];
     
-    // Only add mock token if no Authorization header is already set
-    // This allows the AuthContext to set the real token
-    if (!config.headers.Authorization && !currentToken) {
-      config.headers.Authorization = 'Bearer mock_jwt_token_development';
-    } else if (currentToken && !config.headers.Authorization) {
-      // Use the token set by AuthContext
-      config.headers.Authorization = currentToken;
+    // Always ensure Authorization header is set
+    if (!config.headers.Authorization) {
+      if (currentToken) {
+        // Use the real token set by AuthContext
+        config.headers.Authorization = currentToken;
+      } else {
+        // Fall back to mock token for development
+        config.headers.Authorization = 'Bearer mock_jwt_token_development';
+      }
+    }
+    
+    // For FormData requests, don't set Content-Type manually
+    // Let React Native handle it automatically with the correct boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
     }
     
     console.log('Request headers:', config.headers);
+    console.log('Request data type:', config.data ? config.data.constructor.name : 'undefined');
     return config;
   },
   (error) => {
@@ -94,9 +103,20 @@ export const notificationsAPI = {
 };
 
 export const uploadAPI = {
-  uploadImage: (formData) => apiClient.post('/upload/image', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  }),
+  uploadImage: (formData) => {
+    console.log('=== UPLOAD API CALLED ===');
+    console.log('FormData received:', formData);
+    console.log('FormData type:', formData.constructor.name);
+    
+    // For FormData in React Native, we need to let the client set the Content-Type automatically
+    // Setting it manually can interfere with the boundary parameter
+    return apiClient.post('/upload/image', formData, {
+      transformRequest: (data) => {
+        console.log('Transform request called with:', data);
+        console.log('Data type:', data ? data.constructor.name : 'undefined');
+        // Don't transform FormData - let it be sent as-is
+        return data;
+      },
+    });
+  },
 }; 

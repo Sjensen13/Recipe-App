@@ -47,6 +47,7 @@ export default function EditProfile({ navigation, route }) {
   };
 
   const pickImage = async () => {
+    console.log('=== PICK IMAGE FUNCTION CALLED ===');
     try {
       // Request permissions first
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -63,28 +64,68 @@ export default function EditProfile({ navigation, route }) {
       });
 
       if (!result.canceled && result.assets[0]) {
+        console.log('Image picker result:', result);
+        console.log('Selected asset:', result.assets[0]);
+        
         try {
           setUploadingImage(true);
           
           // Create form data for upload
           const formData = new FormData();
-          formData.append('image', {
-            uri: result.assets[0].uri,
-            type: 'image/jpeg',
-            name: 'avatar.jpg',
+          
+          // In React Native, we need to provide the file object with uri, type, and name
+          const asset = result.assets[0];
+          console.log('Asset details:', {
+            uri: asset.uri,
+            type: asset.type,
+            width: asset.width,
+            height: asset.height,
+            fileSize: asset.fileSize
           });
+          
+          const imageFile = {
+            uri: asset.uri,
+            type: asset.type || 'image/jpeg',
+            name: asset.fileName || 'avatar.jpg',
+          };
+          
+          formData.append('image', imageFile);
           formData.append('type', 'avatar');
 
-          // Upload image to server
-          console.log('Uploading image with formData:', formData);
-          const uploadResponse = await uploadAPI.uploadImage(formData);
-          console.log('Upload response:', uploadResponse.data);
-          const imageUrl = uploadResponse.data.url;
+          console.log('FormData created with image file:', imageFile);
+          console.log('FormData type:', formData.constructor.name);
+          console.log('FormData entries:');
+          if (formData._parts) {
+            for (let [key, value] of formData._parts) {
+              console.log(`${key}:`, value);
+            }
+          } else {
+            console.log('FormData._parts not available');
+          }
 
-          setFormData(prev => ({
-            ...prev,
-            avatar_url: imageUrl,
-          }));
+          // Test FormData creation
+          console.log('Testing FormData creation...');
+          const testFormData = new FormData();
+          testFormData.append('test', 'value');
+          console.log('Test FormData type:', testFormData.constructor.name);
+          console.log('Test FormData has _parts:', !!testFormData._parts);
+
+          // Upload image to server
+          console.log('About to call uploadAPI.uploadImage...');
+          const uploadResponse = await uploadAPI.uploadImage(formData);
+          console.log('Upload response received:', uploadResponse);
+          console.log('Upload response data:', uploadResponse.data);
+          const imageUrl = uploadResponse.data.data.url;
+          console.log('Setting avatar URL to:', imageUrl);
+
+          setFormData(prev => {
+            const newFormData = {
+              ...prev,
+              avatar_url: imageUrl,
+            };
+            console.log('Updated formData:', newFormData);
+            return newFormData;
+          });
         } catch (uploadError) {
           console.error('Image upload error:', uploadError);
           console.error('Upload error response:', uploadError.response?.data);

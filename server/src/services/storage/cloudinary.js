@@ -16,6 +16,13 @@ class CloudinaryService {
    */
   async uploadImage(file, options = {}) {
     try {
+
+      
+      // Check if Cloudinary is properly configured
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        throw new Error('Cloudinary not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables.');
+      }
+      
       const uploadOptions = {
         folder: options.folder || 'recipe-app',
         resource_type: 'image',

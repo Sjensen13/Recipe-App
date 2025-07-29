@@ -25,6 +25,7 @@ async function authenticateToken(req, res, next) {
           name: 'Test User'
         }
       };
+
       return next();
     }
 
