@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../services/api';
+import { getAvatarSource, handleAvatarError as handleAvatarErrorUtil } from '../../utils/avatarUtils';
 
 export default function HomeScreen({ navigation, route }) {
   const [posts, setPosts] = useState([]);
@@ -59,6 +60,18 @@ export default function HomeScreen({ navigation, route }) {
       
       if (response.data.success) {
         const postsData = response.data.data;
+        
+        // Debug: Log the posts data to see what we're getting
+        console.log('HomeScreen - Posts data received:', postsData);
+        postsData.forEach((post, index) => {
+          console.log(`HomeScreen - Post ${index + 1}:`, {
+            id: post.id,
+            user_id: post.user_id,
+            users: post.users,
+            avatar_url: post.users?.avatar_url,
+            username: post.users?.username
+          });
+        });
         
         // Initialize likes and comments state for each post
         const initialLikesState = {};
@@ -183,17 +196,35 @@ export default function HomeScreen({ navigation, route }) {
 
     // Helper function to get avatar URL with fallback
     const getAvatarUrl = () => {
-      if (item.users?.avatar_url) {
-        console.log('Mobile: Using avatar URL for user:', item.user_id, 'URL:', item.users.avatar_url);
-        return item.users.avatar_url;
+      console.log('HomeScreen - Item data:', {
+        id: item.id,
+        user_id: item.user_id,
+        users: item.users,
+        avatar_url: item.users?.avatar_url,
+        username: item.users?.username,
+        has_avatar: !!item.users?.avatar_url,
+        current_user_id: user?.id
+      });
+      
+      // If this is the current user's post, use their current avatar URL
+      if (item.user_id === user?.id) {
+        console.log(`This is current user's post - using current avatar: ${user?.avatar_url}`);
+        return getAvatarSource(user?.avatar_url, user?.id);
       }
-      console.log('Mobile: No avatar URL for user:', item.user_id, 'using placeholder');
-      return 'https://via.placeholder.com/40';
+      
+      // For other users' posts, use the avatar URL from the post data
+      if (item.users?.avatar_url) {
+        console.log(`User ${item.users?.username} has avatar: ${item.users.avatar_url}`);
+        return getAvatarSource(item.users.avatar_url, item.user_id);
+      } else {
+        console.log(`User ${item.users?.username} has NO avatar URL - showing placeholder`);
+        return getAvatarSource(null, item.user_id);
+      }
     };
 
     // Handle avatar load error
     const handleAvatarError = (error) => {
-      console.log('Avatar load error for user:', item.user_id, 'URL:', item.users?.avatar_url);
+      handleAvatarErrorUtil(error, item.user_id);
     };
     
     return (
@@ -204,10 +235,7 @@ export default function HomeScreen({ navigation, route }) {
             onPress={() => handleProfileClick(item.user_id)}
           >
             <Image
-              source={{ 
-                uri: getAvatarUrl(),
-                headers: { 'Cache-Control': 'no-cache' }
-              }}
+              source={getAvatarUrl()}
               style={styles.avatar}
               onError={handleAvatarError}
             />

@@ -33,6 +33,7 @@ const ProfileHeader = ({
           showUploadButton={isEditing}
           onUpload={onAvatarUpload}
           uploading={uploadingAvatar}
+          userId={userData.id}
         />
 
         {/* Profile Info */}

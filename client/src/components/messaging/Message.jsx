@@ -41,6 +41,7 @@ const Message = ({ message, onDelete }) => {
             src={message.sender?.avatar_url}
             alt={message.sender?.name || message.sender?.username}
             size="sm"
+            userId={message.sender?.id}
           />
         </div>
       )}

@@ -186,7 +186,7 @@ const ConversationList = ({ onSelectConversation, selectedConversationId }) => {
                 className="flex items-center p-2 cursor-pointer hover:bg-gray-100"
                 onClick={() => handleStartConversation(user)}
               >
-                <Avatar src={user.avatar_url} alt={user.username} size="sm" />
+                <Avatar src={user.avatar_url} alt={user.username} size="sm" userId={user.id} />
                 <span className="ml-2">{user.username}</span>
               </div>
             ))}
@@ -211,6 +211,7 @@ const ConversationList = ({ onSelectConversation, selectedConversationId }) => {
                 src={conversation.other_user?.avatar_url}
                 alt={conversation.other_user?.name || conversation.other_user?.username}
                 size="md"
+                userId={conversation.other_user?.id}
               />
               {conversation.unread_count > 0 && (
                 <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">

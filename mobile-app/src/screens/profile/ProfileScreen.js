@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useQuery, useQueryClient } from 'react-query';
 import { apiClient } from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
+import { getAvatarSource, handleAvatarError } from '../../utils/avatarUtils';
 
 export default function ProfileScreen({ navigation, route }) {
   const { user, logout, clearStoredAuth, resetUserData, loading: authLoading } = useAuth();
@@ -194,22 +195,22 @@ export default function ProfileScreen({ navigation, route }) {
   };
 
   const renderPost = ({ item }) => {
+    console.log('ProfileScreen - Post item data:', {
+      id: item.id,
+      user: item.user,
+      avatar_url: item.user?.avatar_url,
+      username: item.user?.username
+    });
     const isLiked = likedPostsState[item.id] !== undefined ? likedPostsState[item.id] : item.liked;
     const likesCount = likeCounts[item.id] !== undefined ? likeCounts[item.id] : item.likes_count || 0;
     return (
       <View style={styles.postCard}>
         <View style={styles.postHeader}>
-          {item.user?.avatar_url ? (
-            <Image
-              source={{ uri: item.user.avatar_url }}
-              style={styles.postAvatar}
-              onError={(error) => console.log('Avatar load error:', error)}
-            />
-          ) : (
-            <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-              <Ionicons name="person" size={20} color="#ccc" />
-            </View>
-          )}
+          <Image
+            source={getAvatarSource(user?.avatar_url, user?.id)}
+            style={styles.postAvatar}
+            onError={(error) => handleAvatarError(error, user?.id)}
+          />
           <View style={styles.postInfo}>
             <Text style={styles.postUsername}>{item.user?.username || 'Unknown User'}</Text>
             <Text style={styles.postTimestamp}>{new Date(item.created_at).toLocaleDateString()}</Text>
@@ -329,6 +330,14 @@ export default function ProfileScreen({ navigation, route }) {
   console.log('ProfileScreen - User username changed:', user?.username);
   console.log('ProfileScreen - User bio changed:', user?.bio);
   console.log('ProfileScreen - User avatar changed:', user?.avatar_url);
+  
+  // Debug: Check if user has avatar URL in different places
+  console.log('ProfileScreen - Avatar URL check:', {
+    user_avatar_url: user?.avatar_url,
+    user_metadata_avatar_url: user?.user_metadata?.avatar_url,
+    final_display_avatar_url: finalDisplayUser?.avatar_url,
+    has_avatar: !!finalDisplayUser?.avatar_url
+  });
 
   // If we still don't have proper user data, show a message with reset option
   if (!user?.id || user?.success || user?.message) {
@@ -380,11 +389,11 @@ export default function ProfileScreen({ navigation, route }) {
       <View style={styles.content}>
         <View style={styles.profileSection} key={`${user?.name}-${user?.username}-${user?.bio}-${user?.avatar_url}`}>
           <View style={styles.avatarPlaceholder}>
-            {finalDisplayUser?.avatar_url ? (
-              <Image source={{ uri: finalDisplayUser.avatar_url }} style={styles.avatar} />
-            ) : (
-              <Ionicons name="person" size={60} color="#ccc" />
-            )}
+            <Image 
+              source={getAvatarSource(finalDisplayUser?.avatar_url, finalDisplayUser?.id || user?.id)} 
+              style={styles.avatar}
+              onError={(error) => handleAvatarError(error, finalDisplayUser?.id || user?.id)}
+            />
           </View>
           <Text style={styles.name}>{finalDisplayUser?.name}</Text>
           {finalDisplayUser?.username && (

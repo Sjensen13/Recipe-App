@@ -93,6 +93,7 @@ const ConversationView = ({ conversation, onBack }) => {
             src={conversation.other_user?.avatar_url}
             alt={conversation.other_user?.name || conversation.other_user?.username}
             size="md"
+            userId={conversation.other_user?.id}
           />
           <div className="ml-3">
             {conversation.other_user?.username && (

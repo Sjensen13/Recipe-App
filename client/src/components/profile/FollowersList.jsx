@@ -210,6 +210,7 @@ const FollowersList = ({ userId, type = 'followers', onClose }) => {
                         src={user.avatar_url}
                         alt={user.name}
                         size="md"
+                        userId={user.id}
                       />
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-gray-900 truncate">

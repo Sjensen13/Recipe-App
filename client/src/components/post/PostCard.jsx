@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/auth/AuthContext';
+import { getAvatarUrl as getAvatarUrlUtil, handleAvatarError as handleAvatarErrorUtil } from '../../utils/avatarUtils';
 
 const PostCard = ({
   post,
@@ -31,19 +32,12 @@ const PostCard = ({
 
   // Helper function to get avatar URL with fallback
   const getAvatarUrl = () => {
-    if (post.users?.avatar_url) {
-      console.log('Using avatar URL for user:', post.users.id, 'URL:', post.users.avatar_url);
-      return post.users.avatar_url;
-    }
-    console.log('No avatar URL for user:', post.users?.id, 'using default avatar');
-    // Return default avatar
-    return require('../../assets/images/default-avatar.png');
+    return getAvatarUrlUtil(post.users?.avatar_url, post.users?.id);
   };
 
   // Handle avatar load error
   const handleAvatarError = (e) => {
-    console.log('Avatar load error for user:', post.users?.id, 'URL:', post.users?.avatar_url);
-    e.target.src = require('../../assets/images/default-avatar.png');
+    handleAvatarErrorUtil(e, post.users?.id);
   };
 
   // Handle profile click

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useQuery } from 'react-query';
 import { apiClient } from '../../services/api';
+import { getAvatarSource, handleAvatarError } from '../../utils/avatarUtils';
 
 export default function UserProfileScreen({ navigation, route }) {
   const { user } = useAuth();
@@ -92,17 +93,11 @@ export default function UserProfileScreen({ navigation, route }) {
     return (
       <View style={styles.postCard}>
         <View style={styles.postHeader}>
-          {item.user?.avatar_url ? (
-            <Image
-              source={{ uri: item.user.avatar_url }}
-              style={styles.postAvatar}
-              onError={(error) => console.log('Avatar load error:', error)}
-            />
-          ) : (
-            <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-              <Ionicons name="person" size={20} color="#ccc" />
-            </View>
-          )}
+          <Image
+            source={getAvatarSource(item.user?.avatar_url, item.user?.id)}
+            style={styles.postAvatar}
+            onError={(error) => handleAvatarError(error, item.user?.id)}
+          />
           <View style={styles.postInfo}>
             <Text style={styles.postUsername}>{item.user?.username || 'Unknown User'}</Text>
             <Text style={styles.postTimestamp}>{new Date(item.created_at).toLocaleDateString()}</Text>
@@ -220,11 +215,11 @@ export default function UserProfileScreen({ navigation, route }) {
       <View style={styles.content}>
         <View style={styles.profileSection}>
           <View style={styles.avatarPlaceholder}>
-            {displayUser?.avatar_url ? (
-              <Image source={{ uri: displayUser.avatar_url }} style={styles.avatar} />
-            ) : (
-              <Ionicons name="person" size={60} color="#ccc" />
-            )}
+            <Image 
+              source={getAvatarSource(displayUser?.avatar_url, displayUser?.id)} 
+              style={styles.avatar}
+              onError={(error) => handleAvatarError(error, displayUser?.id)}
+            />
           </View>
           <Text style={styles.name}>{displayUser?.name}</Text>
           {displayUser?.username && (

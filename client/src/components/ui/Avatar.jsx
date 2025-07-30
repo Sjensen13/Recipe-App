@@ -1,5 +1,6 @@
 import React from 'react';
 import CloudinaryImage from './CloudinaryImage';
+import { getAvatarUrl, handleAvatarError, getAvatarStyles } from '../../utils/avatarUtils';
 
 const Avatar = ({ 
   src, 
@@ -8,7 +9,8 @@ const Avatar = ({
   className = '',
   showUploadButton = false,
   onUpload,
-  uploading = false
+  uploading = false,
+  userId = 'unknown'
 }) => {
   const sizeClasses = {
     sm: 'w-8 h-8',
@@ -38,10 +40,11 @@ const Avatar = ({
       <div className={`${sizeClasses[size]} rounded-full bg-gray-200 flex items-center justify-center overflow-hidden`}>
         {src ? (
           <CloudinaryImage 
-            src={src} 
+            src={getAvatarUrl(src, userId)} 
             alt={alt}
             size={size === 'sm' ? 'thumbnail' : size === 'lg' || size === 'xl' ? 'medium' : 'small'}
             className="w-full h-full object-cover"
+            onError={(e) => handleAvatarError(e, userId)}
             fallback={
               <div className={`w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold ${textSizes[size]}`}>
                 {getInitials(alt || 'User')}

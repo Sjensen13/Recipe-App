@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useQuery } from 'react-query';
 import { apiClient } from '../../services/api';
+import { getAvatarSource, handleAvatarError as handleAvatarErrorUtil } from '../../utils/avatarUtils';
 
 export default function ExploreScreen({ navigation, route }) {
   const { user } = useAuth();
@@ -118,15 +119,18 @@ export default function ExploreScreen({ navigation, route }) {
 
     // Helper function to get avatar URL with fallback
     const getAvatarUrl = () => {
-      if (item.users?.avatar_url) {
-        return item.users.avatar_url;
+      // If this is the current user's post, use their current avatar URL
+      if (item.user_id === user?.id) {
+        return getAvatarSource(user?.avatar_url, user?.id);
       }
-      return 'https://via.placeholder.com/40';
+      
+      // For other users' posts, use the avatar URL from the post data
+      return getAvatarSource(item.users?.avatar_url, item.user_id);
     };
 
     // Handle avatar load error
     const handleAvatarError = (error) => {
-      console.log('Avatar load error for user:', item.user_id, 'URL:', item.users?.avatar_url);
+      handleAvatarErrorUtil(error, item.user_id);
     };
 
     return (
@@ -140,10 +144,7 @@ export default function ExploreScreen({ navigation, route }) {
             onPress={() => handleProfileClick(item.user_id)}
           >
             <Image
-              source={{ 
-                uri: getAvatarUrl(),
-                headers: { 'Cache-Control': 'no-cache' }
-              }}
+              source={getAvatarUrl()}
               style={styles.avatar}
               onError={handleAvatarError}
             />

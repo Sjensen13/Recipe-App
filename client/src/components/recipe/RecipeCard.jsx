@@ -72,6 +72,7 @@ const RecipeCard = ({ recipe, onClick }) => {
               src={recipe.user?.avatar_url} 
               alt={recipe.user?.username}
               size="sm"
+              userId={recipe.user?.id}
             />
             <span className="text-sm text-gray-600">
               {recipe.user?.full_name || recipe.user?.username || 'Unknown'}

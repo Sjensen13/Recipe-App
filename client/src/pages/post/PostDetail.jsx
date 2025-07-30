@@ -4,6 +4,7 @@ import { getPost, likePost, addComment } from '../../services/api/posts';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorState from '../../components/ui/ErrorState';
 import { useAuth } from '../../context/auth/AuthContext';
+import { getAvatarUrl, handleAvatarError } from '../../utils/avatarUtils';
 
 const PostDetail = () => {
   const { postId } = useParams();
@@ -192,8 +193,9 @@ const PostDetail = () => {
               onClick={() => handleProfileClick(post.users?.id)}
             >
               <img 
-                src={post.users?.avatar_url || require('../../assets/images/default-avatar.png')} 
+                src={getAvatarUrl(post.users?.avatar_url, post.users?.id)} 
                 alt={post.users?.name || 'User'}
+                onError={(e) => handleAvatarError(e, post.users?.id)}
                 style={{ 
                   width: '50px', 
                   height: '50px', 
